@@ -15,6 +15,16 @@ export default function Login({ navigation }) {
       return;
     }
 
+    // validación de correo
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert(
+        "Error",
+        "El email no respeta el formato correcto 'Usuario@example.com'. Ingresar un formato válido"
+      );
+      return;
+    }
+    
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
       Alert.alert("Login exitoso", "Has iniciado sesión correctamente.");
