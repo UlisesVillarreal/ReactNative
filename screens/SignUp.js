@@ -16,11 +16,67 @@ export default function SignUp({ navigation }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSignUp = async () => {
-    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password || !confirmPassword) {
-      Alert.alert("Error", "Todos los campos son obligatorios.");
+    if (!firstName.trim() || !lastName.trim() || !dni || !email.trim() || !password || !confirmPassword) {
+      Alert.alert("Error", "Debe completar los campos obligatorios (*) .");
       return;
     }
 
+    // -- VALIDACIONES --
+    
+    // validación de Nombre
+    const firstNameRegex = /^[a-zA-Z\sñÑ\u00C0-\u017F]+$/;
+    if (!firstNameRegex.test(firstName.trim())) {
+      Alert.alert(
+        "Error",
+        "El nombre ingresado no cumple el formato válido"
+      );
+      return;
+    }
+
+    // validación de Apellido
+    const lastNameRegex = /^[a-zA-Z\sñÑ\u00C0-\u017F]+$/;
+    if (!lastNameRegex.test(lastName.trim())) {
+      Alert.alert(
+        "Error",
+        "El apellido ingresado no cumple el formato válido"
+      );
+      return;
+    }
+
+        // validación de DNI
+    const dniRegex = /^\d{7,8}$/;
+    if (!dniRegex.test(dni.trim())) {
+      Alert.alert(
+        "Error",
+        "El DNI ingresado no es válido"
+      );
+      return;
+    }
+
+    // validación del Teléfono
+
+    if (tel.trim().length > 0) {
+      const telRegex = /^\d{10}$/;
+      if (!telRegex.test(tel.trim())) {
+        Alert.alert(
+          "Error",
+          "El Teléfono ingresado no es válido"
+        );
+        return;
+      }
+    }
+
+    // validación de correo
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email.trim())) {
+      Alert.alert(
+        "Error",
+        "El email no respeta el formato correcto 'Usuario@example.com'. Ingresar un formato válido"
+      );
+      return;
+    }
+
+    // validación de contraseña
     if (password !== confirmPassword) {
       Alert.alert("Error", "Las contraseñas no coinciden.");
       return;
@@ -34,6 +90,8 @@ export default function SignUp({ navigation }) {
       );
       return;
     }
+
+
 
     let credential;
     try {
@@ -85,7 +143,7 @@ export default function SignUp({ navigation }) {
         contentContainerStyle={styles.subContainer}
         showsVerticalScrollIndicator={false}
         >
-        <Text style={styles.label}>Nombre</Text>
+        <Text style={styles.label}>Nombre *</Text>
         <View style={styles.inputContainer}>
           <FontAwesome name="user" size={20} color="#C68A36" style={styles.icon} />
           <TextInput
@@ -96,7 +154,7 @@ export default function SignUp({ navigation }) {
           />
         </View>
 
-        <Text style={styles.label}>Apellido</Text>
+        <Text style={styles.label}>Apellido *</Text>
         <View style={styles.inputContainer}>
           <FontAwesome name="user" size={20} color="#C68A36" style={styles.icon} />
           <TextInput
@@ -107,14 +165,15 @@ export default function SignUp({ navigation }) {
           />
         </View>
 
-        <Text style={styles.label}>DNI</Text>
+        <Text style={styles.label}>DNI *</Text>
         <View style={styles.inputContainer}>
           <FontAwesome name="id-card" size={20} color="#C68A36" style={styles.icon} />
           <TextInput
             style={styles.input}
-            placeholder="Ingrese su DNI"
+            placeholder="Solo el numero, sin '.'"
             value={dni}
             onChangeText={setDni}
+            keyboardType="numeric"
           />
         </View>
 
@@ -123,18 +182,19 @@ export default function SignUp({ navigation }) {
           <FontAwesome name="phone" size={20} color="#C68A36" style={styles.icon} />
           <TextInput
             style={styles.input}
-            placeholder="Ingrese su número de teléfono"
+            placeholder="Sin '0' ni '15', ej: 3875666888"
             value={tel}
             onChangeText={setTel}
+            keyboardType="numeric"
           />
         </View>
 
-        <Text style={styles.label}>Correo</Text>
+        <Text style={styles.label}>Correo *</Text>
         <View style={styles.inputContainer}>
           <FontAwesome name="envelope" size={20} color="#C68A36" style={styles.icon} />
           <TextInput
             style={styles.input}
-            placeholder="Ingrese su correo"
+            placeholder="Usuario@example.temple"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -142,7 +202,7 @@ export default function SignUp({ navigation }) {
           />
         </View>
 
-        <Text style={styles.label}>Contraseña</Text>
+        <Text style={styles.label}>Contraseña *</Text>
         <View style={styles.inputContainer}>
           <FontAwesome name="lock" size={20} color="#C68A36" style={styles.icon} />
           <TextInput
@@ -157,7 +217,7 @@ export default function SignUp({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.label}>Confirmar Contraseña</Text>
+        <Text style={styles.label}>Confirmar Contraseña *</Text>
         <View style={styles.inputContainer}>
           <FontAwesome name="lock" size={20} color="#C68A36" style={styles.icon} />
           <TextInput
