@@ -14,15 +14,17 @@ export default function SignUp({ navigation }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
 
+  
+  // -- VALIDACIONES --
   const handleSignUp = async () => {
     if (!firstName.trim() || !lastName.trim() || !dni || !email.trim() || !password || !confirmPassword) {
       Alert.alert("Error", "Debe completar los campos obligatorios (*) .");
       return;
     }
 
-    // -- VALIDACIONES --
-    
+
     // validación de Nombre
     const firstNameRegex = /^[a-zA-Z\sñÑ\u00C0-\u017F]+$/;
     if (!firstNameRegex.test(firstName.trim())) {
