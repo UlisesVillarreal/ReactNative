@@ -14,17 +14,95 @@ export default function SignUp({ navigation }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
-
-  
-  // -- VALIDACIONES --
-  const handleSignUp = async () => {
-    if (!firstName.trim() || !lastName.trim() || !dni || !email.trim() || !password || !confirmPassword) {
-      Alert.alert("Error", "Debe completar los campos obligatorios (*) .");
+  //Estados para los mensajes de validacion
+  const [errors,setErrors] = useState({});
+  const [passwordStrength, setPasswordStrength] = useState('');
+  const [passwordStrengthColor, setPasswordStrengthColor] = useState('');
+  // funcion para medir la seguridad de la contraseña
+  const checkPasswordStrength = (password) => {
+    if (password.length === 0) {
+      setPasswordStrength('');
+      setPasswordStrengthColor('');
       return;
     }
+    const hasMinLength = password.length >= 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
+
+    const requirementsMet = [hasMinLength, hasUpperCase, hasLowerCase, hasNumber, hasSpecialChar].filter(Boolean).length;
+
+    if (requirementsMet <= 2) {
+      setPasswordStrength('Débil');
+      setPasswordStrengthColor('#EF4444');
+    } else if (requirementsMet <= 4) {
+      setPasswordStrength('Media');
+      setPasswordStrengthColor('#F59E0B');
+    } else {
+      setPasswordStrength('Fuerte');
+      setPasswordStrengthColor('#10B981');
+    }
+  };
+  const passwordRequirements = [
+    {
+      label: 'Al menos 8 caracteres',
+      met: password.length >= 8,
+    },
+    {
+      label: 'Una letra mayúscula',
+      met: /[A-Z]/.test(password),
+    },
+    {
+      label: 'Una letra minúscula',
+      met: /[a-z]/.test(password),
+    },
+    {
+      label: 'Un número',
+      met: /[0-9]/.test(password),
+    },
+    {
+      label: 'Un carácter especial (@, #, !)',
+      met: /[^A-Za-z0-9]/.test(password),
+    },
+  ];
+  // -- VALIDACIONES --
+  const handleSignUp = async () => {
+    const newErrors = {};
+//Validacion de Campos obligatorios
 
 
+  if (!firstName.trim()) {
+    newErrors.firstName = 'El nombre es obligatorio.';
+  }
+  if (!lastName.trim()) {
+    newErrors.lastName = 'El apellido es obligatorio.';
+  }
+  if (!dni.trim()) {
+    newErrors.dni = 'El DNI es obligatorio.';
+  } else if (!/^\d{7,8}$/.test(dni.trim())) {
+    newErrors.dni = 'El DNI debe tener entre 7 y 8 dígitos.';
+  }
+  if (!email.trim()) {
+    newErrors.email = 'El correo electrónico es obligatorio.';
+  } else {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    if (!emailRegex.test(email.trim())) {
+      newErrors.email = 'Ingresá un correo electrónico válido.';
+    }
+  }
+  if (!password) {
+    newErrors.password = 'La contraseña es obligatoria.';
+  }  
+  if (!confirmPassword) {
+    newErrors.confirmPassword = 'La confirmación de la contraseña es obligatoria.';
+  } 
+  setErrors(newErrors);
+
+  if (Object.keys(newErrors).length > 0) {
+    return;
+  }
     // validación de Nombre
     const firstNameRegex = /^[a-zA-Z\sñÑ\u00C0-\u017F]+$/;
     if (!firstNameRegex.test(firstName.trim())) {
@@ -68,30 +146,41 @@ export default function SignUp({ navigation }) {
       }
     }
 
-    // validación de correo
+    // Validación de correo
+    
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
     if (!emailRegex.test(email.trim())) {
-      Alert.alert(
-        "Error",
-        "El email no respeta el formato correcto 'Usuario@example.com'. Ingresar un formato válido"
-      );
+      setErrors((prevErrors) => ({
+      ...prevErrors,
+      email: 'Ingresá un correo electrónico válido. Ejemplo: usuario@gmail.com'
+      }));
       return;
     }
 
-    // validación de contraseña
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      email: ''
+    }));  
+
+    // Validación de confirmación de contraseña
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Las contraseñas no coinciden.");
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        confirmPassword: 'Las contraseñas no coinciden.'
+      }));
       return;
     }
 
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{6,}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+
     if (!passwordRegex.test(password)) {
-      Alert.alert(
-        "Error",
-        "La contraseña debe tener al menos 6 caracteres, incluyendo una letra mayúscula, una minúscula y un número."
-      );
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        password: 'Debe tener al menos 8 caracteres, mayúscula, minúscula, número y símbolo.'
+      }));
       return;
-    }
+}
 
 
 
@@ -141,7 +230,7 @@ export default function SignUp({ navigation }) {
       <Text style={styles.title}>Crear Cuenta</Text>
 
         <ScrollView 
-        style={styles.scrollView} 
+        style={{ width: '100%' }}
         contentContainerStyle={styles.subContainer}
         showsVerticalScrollIndicator={false}
         >
@@ -155,6 +244,12 @@ export default function SignUp({ navigation }) {
             onChangeText={setFirstName}
           />
         </View>
+        
+        {errors.firstName && (
+          <Text style={ styles.errortext }>
+            {errors.firstName}
+        </Text>
+        )}
 
         <Text style={styles.label}>Apellido *</Text>
         <View style={styles.inputContainer}>
@@ -166,7 +261,11 @@ export default function SignUp({ navigation }) {
             onChangeText={setLastName}
           />
         </View>
-
+        {errors.lastName && (
+          <Text style={ styles.errortext }>
+            {errors.lastName}
+        </Text>
+        )}
         <Text style={styles.label}>DNI *</Text>
         <View style={styles.inputContainer}>
           <FontAwesome name="id-card" size={20} color="#C68A36" style={styles.icon} />
@@ -178,6 +277,11 @@ export default function SignUp({ navigation }) {
             keyboardType="numeric"
           />
         </View>
+        {errors.dni && (
+          <Text style={styles.errortext }>
+            {errors.dni}
+          </Text>
+)}
 
         <Text style={styles.label}>Teléfono</Text>
         <View style={styles.inputContainer}>
@@ -198,11 +302,37 @@ export default function SignUp({ navigation }) {
             style={styles.input}
             placeholder="Usuario@example.temple"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => {
+              setEmail(text);
+
+              const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+              if (text.trim() === '') {
+                setErrors((prevErrors) => ({
+                  ...prevErrors,
+                  email: ''
+                }));
+              } else if (!emailRegex.test(text.trim())) {
+                setErrors((prevErrors) => ({
+                  ...prevErrors,
+                  email: 'Ingresá un correo electrónico válido.'
+                }));
+              } else {
+                setErrors((prevErrors) => ({
+                  ...prevErrors,
+                  email: ''
+                }));
+              }
+            }}
             keyboardType="email-address"
             autoCapitalize="none"
           />
         </View>
+        {errors.email && (
+          <Text style={styles.errortext}>
+            {errors.email}
+          </Text>
+        )}
 
         <Text style={styles.label}>Contraseña *</Text>
         <View style={styles.inputContainer}>
@@ -211,7 +341,10 @@ export default function SignUp({ navigation }) {
             style={styles.input}
             placeholder="Ingrese su contraseña"
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text) => {
+              setPassword(text);
+              checkPasswordStrength(text);
+            }}
             secureTextEntry={!showPassword}
           />
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
@@ -219,6 +352,54 @@ export default function SignUp({ navigation }) {
           </TouchableOpacity>
         </View>
 
+        {/* Lista dinámica de requisitos */}
+        <View style={styles.passwordRequirementsContainer}>
+          <Text style={styles.passwordRequirementsTitle}>
+            Requisitos de la contraseña:
+          </Text>
+
+          {passwordRequirements.map((requirement, index) => (
+            <View
+              key={index}
+              style={styles.passwordRequirementRow}
+            >
+              <FontAwesome
+                name={requirement.met ? 'check-circle' : 'times-circle'}
+                size={16}
+                color={requirement.met ? '#10B981' : '#EF4444'}
+              />
+
+              <Text
+                style={[
+                  styles.passwordRequirementText,
+                  {
+                    color: requirement.met ? '#10B981' : '#EF4444',
+                  },
+                ]}
+              >
+                {requirement.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+        {/*Indicator de seguridad */}
+        {passwordStrength !== '' && (
+          <View style={styles.strengthContainer}>
+            <Text style={styles.strengthLabel}>
+              Seguridad de la contraseña:
+            </Text>
+
+            <Text
+              style={[
+                styles.strengthText,
+                { color: passwordStrengthColor }
+            ]}
+          >
+            {passwordStrength}
+          </Text>
+          </View>
+        )}
+        
         <Text style={styles.label}>Confirmar Contraseña *</Text>
         <View style={styles.inputContainer}>
           <FontAwesome name="lock" size={20} color="#C68A36" style={styles.icon} />
@@ -233,8 +414,13 @@ export default function SignUp({ navigation }) {
             <FontAwesome name={showConfirmPassword ? "eye-slash" : "eye"} size={20} color="#C68A36" />
           </TouchableOpacity>
         </View>
+        {errors.confirmPassword && (
+          <Text style={styles.errortext}>
+            {errors.confirmPassword}
+          </Text>
+        )}
 
-        <TouchableOpacity style={styles.button} onPress={handleSignUp}>
+        <TouchableOpacity style={styles.button} onPress={handleSignUp}>  
           <Text style={styles.buttonText}>Registrarse</Text>
         </TouchableOpacity>
 
@@ -253,6 +439,31 @@ const styles = StyleSheet.create({
     padding: 10,
     paddingBottom: 60,
     backgroundColor: '#F8EBD7',
+  },
+  passwordRequirementsContainer: {
+    alignSelf: 'stretch',
+    width: '100%',
+    marginTop: -10,
+    marginBottom: 10,
+  },
+
+  passwordRequirementsTitle: {
+    fontSize: 12,
+    color: '#3E2723',
+    fontWeight: 'bold',
+    marginBottom: 6,
+  },
+
+  passwordRequirementRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+    gap: 8,
+  },
+
+  passwordRequirementText: {
+    fontSize: 12,
+    flexShrink: 1,
   },
   subContainer:{
     backgroundColor:'#fbf6ee',
@@ -312,5 +523,34 @@ const styles = StyleSheet.create({
   signUpText: {
     marginTop: 20,
     color: '#C68A36',
+  },
+  strengthContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    alignSelf: 'stretch',
+    marginBottom: 10,
+  },
+  strengthLabel: {
+    fontSize: 11,
+    color: '#666666',
+  },
+  strengthText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  errortext: {
+    color: '#ef4444',
+    fontSize: 12,
+    alignSelf: 'flex-start',
+    width: '100%',
+    marginTop: 5,
+    marginBottom: 15,
   },
 });
