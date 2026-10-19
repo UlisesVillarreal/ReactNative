@@ -9,6 +9,8 @@ export default function Login({ navigation }) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+
+
   const handleLogin = async () => {
     if (!email.trim() || !password) {
       Alert.alert("Error", "Por favor ingrese ambos campos.");
@@ -57,8 +59,7 @@ export default function Login({ navigation }) {
   return (
     <View style={styles.container}>
       <Image source={require('../assets/logotemple.png')} style={styles.logo} />
-      <Text style={styles.title}>Iniciar sesión</Text>
-      <Text style={styles.text}>Sistema de Gestión de Temple Estetique</Text>
+      <Text style={styles.title}>Registrarse</Text>
 
       <View style={styles.subContainer}>
         <Text style={styles.label}>Correo</Text>
@@ -89,9 +90,14 @@ export default function Login({ navigation }) {
           </TouchableOpacity>
         </View>
 
+        <TouchableOpacity style={styles.recoverButton} onPress={() => navigation.navigate('RecoverPassword')}>
+          <Text style={styles.recoverText}>¿Olvidaste tu contraseña? ingresa aquí</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Ingresar</Text>
         </TouchableOpacity>
+        
 
         <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
           <Text style={styles.signUpText}>¿No tienes cuenta aún? Registrate aquí</Text>
@@ -170,8 +176,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  
+  recoverText: {
+    color: '#C68A36',
+    textDecorationLine: 'underline',  
+  },
   signUpText: {
     marginTop: 20,
     color: '#C68A36',
+    textDecorationLine: 'underline',
   },
 });
