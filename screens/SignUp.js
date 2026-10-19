@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   subContainer:{
-    backgroundColor:'#fbf6ee',
+    backgroundColor:'#F2DFBF',
     alignItems:'center',
     borderRadius:20,
     paddingTop:20,
