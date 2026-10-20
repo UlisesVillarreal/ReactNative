@@ -99,9 +99,10 @@ export default function Login({ navigation }) {
       <View style={styles.subContainer}>
         <Text style={styles.label}>Correo</Text>
         <View style={styles.inputContainer}>
-          <FontAwesome name="envelope" size={20} color="#C68A36" style={styles.icon} />
+          <FontAwesome name="envelope" size={20} style={styles.icon} />
           <TextInput
             style={styles.input}
+            placeholderTextColor="#7C6860"
             placeholder="usuario@gmail.com"
             value={email}
             onChangeText={setEmail}
@@ -112,16 +113,17 @@ export default function Login({ navigation }) {
 
         <Text style={styles.label}>Contraseña</Text>
         <View style={styles.inputContainer}>
-          <FontAwesome name="lock" size={24} color="#C68A36" style={styles.icon} />
+          <FontAwesome name="lock" size={24} style={styles.icon} />
           <TextInput
             style={styles.input}
+            placeholderTextColor="#7C6860"
             placeholder="********"
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
           />
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color="#C68A36" />
+            <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} style={styles.icon} />
           </TouchableOpacity>
         </View>
 
@@ -164,8 +166,8 @@ export default function Login({ navigation }) {
               
               <TextInput
                 style={styles.input} 
-                placeholder="Ingrese su correo"
-                placeholderTextColor="#7C6860" 
+                placeholder="Ej: usuario@gmail.com"
+                placeholderTextColor="#7C6860"
                 value={resetEmail}
                 onChangeText={setResetEmail}
                 keyboardType="email-address"
@@ -195,13 +197,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: '#F8EBD7',
+    backgroundColor: '#FBEBD7',
   },
   modalButtonCancel: {  //Espacio entre los botones de recuperar contraseña 
     paddingVertical: 8,
   },
   subContainer:{
-    backgroundColor:'#F2DFBF',
+    backgroundColor:'#F2E3C8',
     alignItems: 'center',
     padding: 20,
     borderRadius:20,
@@ -214,7 +216,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 26,
-    color: '#3E2723',
+    color: '#6D512A',
     fontWeight: 'bold',
     marginBottom: 20,
   },
@@ -225,7 +227,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   label: {
-    color:'#3E2723',
+    color:'#6D512A',
     alignSelf: 'flex-start',
     fontSize: 16,
     fontWeight: 'bold',
@@ -240,12 +242,13 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    borderColor: '#b9770e',
+    borderColor: '#B88A3B',
     marginBottom: 20,
     width: '100%',
   },
   icon: {
     marginRight: 10,
+    color: '#B88A3B',
   },
   input: {
     flex: 1,
@@ -260,14 +263,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   button: {
-    backgroundColor: '#C68A36',
+    backgroundColor: '#D8B77A',
     paddingVertical: 10,
     paddingHorizontal: 40,
     borderRadius: 5,
     marginTop: 20,
   },
   buttonText: {
-    color: '#fff',
+    color: '#FBF7F0',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -285,16 +288,14 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#F8EBD7',
+    backgroundColor: '#F2E3C8',
     borderRadius: 20,
     padding: 25,
     width: '95%',
     alignItems: 'center',
   },
   modalIconContainer: {
-    backgroundColor: '#C68A36',
-    borderWidth: 1,
-    borderColor: '#B9770E',
+    backgroundColor: '#B88A3B',
     width: 65,
     height: 65,
     borderRadius: 32.5,
@@ -306,13 +307,13 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#3E2723',
+    color: '#6D512A',
     marginBottom: 10,
     textAlign: 'center',
   },
   modalSubtitle: {
     fontSize: 13,
-    color: '#666',
+    color: '#7C6860',
     textAlign: 'center',
     marginBottom: 20,
     paddingHorizontal: 10,
@@ -324,13 +325,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    borderColor: '#b9770e',
+    borderColor: '#B88A3B',
     marginBottom: 20,
     width: '100%',
     
   },
   modalButtonSend: {
-    backgroundColor: '#C68A36',
+    backgroundColor: '#D8B77A',
     paddingVertical: 12,
     width: '100%',
     borderRadius: 8,
@@ -338,13 +339,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   modalButtonSendText: {
-    color: '#fff',
+    color: '#FBF7F0',
     fontSize: 15,
     fontWeight: 'bold',
   },
 
   modalButtonCancelText: {
-    color: '#666',
+    color: '#B88A3B',
     fontSize: 14,
     fontWeight: '600',
   },

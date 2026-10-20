@@ -45,14 +45,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   button: {
-    backgroundColor: '#c63d36',
+    backgroundColor: '#D94A3D',
     paddingVertical: 10,
     paddingHorizontal: 40,
     borderRadius: 5,
     marginTop: 20,
   },
   buttonText: {
-    color: '#fff',
+    color: '#FBF1F0',
     fontSize: 16,
     fontWeight: 'bold',
   },

@@ -236,7 +236,7 @@ export default function SignUp({ navigation }) {
         >
         <Text style={styles.label}>Nombre *</Text>
         <View style={styles.inputContainer}>
-          <FontAwesome name="user" size={20} color="#C68A36" style={styles.icon} />
+          <FontAwesome name="user" size={20} style={styles.icon} />
           <TextInput
             style={styles.input}
             placeholder="Ej: Mariano"
@@ -253,7 +253,7 @@ export default function SignUp({ navigation }) {
 
         <Text style={styles.label}>Apellido *</Text>
         <View style={styles.inputContainer}>
-          <FontAwesome name="user" size={20} color="#C68A36" style={styles.icon} />
+          <FontAwesome name="user" size={20} style={styles.icon} />
           <TextInput
             style={styles.input}
             placeholder="Ej: Tamer"
@@ -268,7 +268,7 @@ export default function SignUp({ navigation }) {
         )}
         <Text style={styles.label}>DNI *</Text>
         <View style={styles.inputContainer}>
-          <FontAwesome name="id-card" size={20} color="#C68A36" style={styles.icon} />
+          <FontAwesome name="id-card" size={20} style={styles.icon} />
           <TextInput
             style={styles.input}
             placeholder="Solo el numero, sin '.'"
@@ -285,7 +285,7 @@ export default function SignUp({ navigation }) {
 
         <Text style={styles.label}>Teléfono</Text>
         <View style={styles.inputContainer}>
-          <FontAwesome name="phone" size={20} color="#C68A36" style={styles.icon} />
+          <FontAwesome name="phone" size={20} style={styles.icon} />
           <TextInput
             style={styles.input}
             placeholder="Sin '0' ni '15', ej: 3875666888"
@@ -297,7 +297,7 @@ export default function SignUp({ navigation }) {
 
         <Text style={styles.label}>Correo *</Text>
         <View style={styles.inputContainer}>
-          <FontAwesome name="envelope" size={20} color="#C68A36" style={styles.icon} />
+          <FontAwesome name="envelope" size={20} style={styles.icon} />
           <TextInput
             style={styles.input}
             placeholder="Usuario@gmail.com"
@@ -336,7 +336,7 @@ export default function SignUp({ navigation }) {
 
         <Text style={styles.label}>Contraseña *</Text>
         <View style={styles.inputContainer}>
-          <FontAwesome name="lock" size={20} color="#C68A36" style={styles.icon} />
+          <FontAwesome name="lock" size={20} style={styles.icon} />
           <TextInput
             style={styles.input}
             placeholder="********"
@@ -348,7 +348,7 @@ export default function SignUp({ navigation }) {
             secureTextEntry={!showPassword}
           />
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color="#C68A36" />
+            <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} style={styles.icon}/>
           </TouchableOpacity>
         </View>
 
@@ -366,14 +366,14 @@ export default function SignUp({ navigation }) {
               <FontAwesome
                 name={requirement.met ? 'check-circle' : 'times-circle'}
                 size={16}
-                color={requirement.met ? '#10B981' : '#EF4444'}
+                color={requirement.met ? '#10B981' : '#D94A3D'}
               />
 
               <Text
                 style={[
                   styles.passwordRequirementText,
                   {
-                    color: requirement.met ? '#10B981' : '#EF4444',
+                    color: requirement.met ? '#10B981' : '#D94A3D',
                   },
                 ]}
               >
@@ -402,7 +402,7 @@ export default function SignUp({ navigation }) {
         
         <Text style={styles.label}>Confirmar Contraseña *</Text>
         <View style={styles.inputContainer}>
-          <FontAwesome name="lock" size={20} color="#C68A36" style={styles.icon} />
+          <FontAwesome name="lock" size={20} style={styles.icon} />
           <TextInput
             style={styles.input}
             placeholder="********"
@@ -411,7 +411,7 @@ export default function SignUp({ navigation }) {
             secureTextEntry={!showConfirmPassword}
           />
           <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-            <FontAwesome name={showConfirmPassword ? "eye-slash" : "eye"} size={20} color="#C68A36" />
+            <FontAwesome name={showConfirmPassword ? "eye-slash" : "eye"} size={20}  style={styles.icon}/>
           </TouchableOpacity>
         </View>
         {errors.confirmPassword && (
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
 
   passwordRequirementsTitle: {
     fontSize: 12,
-    color: '#3E2723',
+    color: '#6D512A',
     fontWeight: 'bold',
     marginBottom: 6,
   },
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   subContainer:{
-    backgroundColor:'#F2DFBF',
+    backgroundColor:'#F2E3C8',
     alignItems:'center',
     borderRadius:20,
     paddingTop:20,
@@ -481,13 +481,13 @@ const styles = StyleSheet.create({
     marginTop:'50',
   },
   title: {
-    color:'#3E2723',
+    color:'#6D512A',
     fontSize: 35,
     fontWeight: 'bold',
     marginBottom: 10,
   },
   label: {
-    color:'#3E2723',
+    color:'#6D512A',
     alignSelf: 'flex-start',
     fontSize: 16,
     fontWeight: 'bold',
@@ -497,32 +497,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderColor: '#b9770e',
+    borderColor: '#B88A3B',
     marginBottom: 20,
     width: '130%',
   },
   icon: {
     marginRight: 10,
+    color:'#b88a3b',
   },
   input: {
     flex: 1,
     height: 40,
   },
   button: {
-    backgroundColor: '#C68A36',
+    backgroundColor: '#D8B77A',
     paddingVertical: 10,
     paddingHorizontal: 40,
     borderRadius: 5,
     marginTop: 10,
   },
   buttonText: {
-    color: '#fff',
+    color: '#FBF1F0',
     fontSize: 16,
     fontWeight: 'bold',
   },
   signUpText: {
     marginTop: 20,
-    color: '#C68A36',
+    color: '#B88A3B',
   },
   strengthContainer: {
     flexDirection: 'row',
@@ -540,13 +541,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   errortext: {
-    color: '#ef4444',
+    color: '#D94A3D',
     fontSize: 12,
     alignSelf: 'flex-start',
     width: '100%',
