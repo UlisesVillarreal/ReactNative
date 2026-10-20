@@ -239,7 +239,7 @@ export default function SignUp({ navigation }) {
           <FontAwesome name="user" size={20} color="#C68A36" style={styles.icon} />
           <TextInput
             style={styles.input}
-            placeholder="Ingrese su nombre"
+            placeholder="Ej: Mariano"
             value={firstName}
             onChangeText={setFirstName}
           />
@@ -256,7 +256,7 @@ export default function SignUp({ navigation }) {
           <FontAwesome name="user" size={20} color="#C68A36" style={styles.icon} />
           <TextInput
             style={styles.input}
-            placeholder="Ingrese su apellido"
+            placeholder="Ej: Tamer"
             value={lastName}
             onChangeText={setLastName}
           />
@@ -300,7 +300,7 @@ export default function SignUp({ navigation }) {
           <FontAwesome name="envelope" size={20} color="#C68A36" style={styles.icon} />
           <TextInput
             style={styles.input}
-            placeholder="Usuario@example.temple"
+            placeholder="Usuario@gmail.com"
             value={email}
             onChangeText={(text) => {
               setEmail(text);
@@ -339,7 +339,7 @@ export default function SignUp({ navigation }) {
           <FontAwesome name="lock" size={20} color="#C68A36" style={styles.icon} />
           <TextInput
             style={styles.input}
-            placeholder="Ingrese su contraseña"
+            placeholder="********"
             value={password}
             onChangeText={(text) => {
               setPassword(text);
@@ -405,7 +405,7 @@ export default function SignUp({ navigation }) {
           <FontAwesome name="lock" size={20} color="#C68A36" style={styles.icon} />
           <TextInput
             style={styles.input}
-            placeholder="Confirme su contraseña"
+            placeholder="********"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry={!showConfirmPassword}

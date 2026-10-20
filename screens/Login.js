@@ -102,7 +102,7 @@ export default function Login({ navigation }) {
           <FontAwesome name="envelope" size={20} color="#C68A36" style={styles.icon} />
           <TextInput
             style={styles.input}
-            placeholder="Ingrese su correo"
+            placeholder="usuario@gmail.com"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -115,7 +115,7 @@ export default function Login({ navigation }) {
           <FontAwesome name="lock" size={24} color="#C68A36" style={styles.icon} />
           <TextInput
             style={styles.input}
-            placeholder="Ingrese su contraseña"
+            placeholder="********"
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
