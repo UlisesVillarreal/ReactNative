@@ -260,7 +260,7 @@ export default function Login({ navigation }) {
                   placeholder="Ej: usuario@gmail.com"
                   placeholderTextColor="#9A8478"
                   value={resetEmail}
-                  
+
                   // Validación instantánea en tiempo real (onChangeText y onBlur)
                   onChangeText={(text) => {
                     setResetEmail(text);
@@ -603,6 +603,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
+  
   footerSubText: {
     color: '#7C6860',
     fontSize: 11,
