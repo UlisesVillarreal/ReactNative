@@ -6,10 +6,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFonts, PlayfairDisplay_400Regular, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import PersonalInfoCard from '../components/PersonalInfoCard';
+import MenuModal from '../components/MenuModal';
+
+
 
 export default function Home({ navigation }) {
   const [mostrarFoto, setMostrarFoto] = useState(true);
-  
+  const [menuVisible, setMenuVisible] = useState(false);
+
+
   let [fontsLoaded] = useFonts({
     PlayfairDisplay_400Regular,
     PlayfairDisplay_700Bold,
@@ -38,7 +43,7 @@ export default function Home({ navigation }) {
 
         <Image source={require('../assets/logotemple2.png')} style={styles.logo} resizeMode="contain" />
         
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => setMenuVisible(true)}>
           <MaterialCommunityIcons name="menu-open" size={40} color="#B88A3B" />
         </TouchableOpacity>
 
@@ -66,6 +71,14 @@ export default function Home({ navigation }) {
 
 
       </ScrollView>
+
+      <MenuModal
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)} 
+        onLogout={handleLogOut}
+        navigation={navigation}
+      />
+
     </SafeAreaView>
 
   );
