@@ -1,9 +1,23 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, ScrollView, View, Text, TouchableOpacity, StyleSheet, Alert, Image} from 'react-native';
 import { signOut } from 'firebase/auth';
 import { auth } from '../src/config/firebaseConfig';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useFonts, PlayfairDisplay_400Regular, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
+import PersonalInfoCard from '../components/PersonalInfoCard';
 
 export default function Home({ navigation }) {
+  const [mostrarFoto, setMostrarFoto] = useState(true);
+  
+  let [fontsLoaded] = useFonts({
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_700Bold,
+  });
+
+  if (!fontsLoaded) {
+    return <ActivityIndicator size="large" />;
+  }
 
   const handleLogOut = async () => {
     try {
@@ -15,46 +29,110 @@ export default function Home({ navigation }) {
     }
   };
 
+
   return (
-    <View style={styles.container}>
-      <Image source={require('../assets/logotemple.png')} style={styles.logo} />
-      <Text style={styles.title}>Bienvenido a Temple Estetique</Text>
-      <TouchableOpacity style={styles.button} onPress={handleLogOut}>
-        <Text style={styles.buttonText}>Cerrar sesión</Text>
-      </TouchableOpacity>
-    </View>
+    <SafeAreaView style={styles.container}>
+
+      {/* navbar */}
+      <View style={styles.navbar}>
+
+        <Image source={require('../assets/logotemple2.png')} style={styles.logo} resizeMode="contain" />
+        
+        <TouchableOpacity>
+          <MaterialCommunityIcons name="menu-open" size={40} color="#B88A3B" />
+        </TouchableOpacity>
+
+      </View>
+
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+
+
+        {/* bienvenida */}
+        <View style={styles.headerProfile}>
+
+          <Text style={styles.tittle}>Mi Perfil</Text>
+          <Text style={styles.subTittle}>Página principal de Temple Estetique</Text>
+          <Image source={require('../assets/Usuario.webp')} style={styles.fotoPerfil} resizeMode="contain"/>
+          <Text style={styles.nombrePerfil}>Bienvenido "Usuario"</Text>
+        </View>
+
+        <PersonalInfoCard 
+          nombre="Mariana Figueroa"
+          dni="43578376"
+          correo="marianafigue@gmail.com"
+          telefono="+54 387 555 0126"
+          fechaIngreso="06/10/2026"
+        />
+
+
+      </ScrollView>
+    </SafeAreaView>
+
   );
 }
 
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+
+  container:{
+    flex:1,
+    backgroundColor:'#F2E3C8',
+  },
+    
+  // navbar
+  navbar:{
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: '#F2E3C8',
+  },
+  tittle:{
+    fontSize: 40,
+    fontFamily: 'PlayfairDisplay_400Regular',
+    alignSelf: 'flex-start',
+    color:'#6D512A',
+  },
+    subTittle:{
+    fontSize: 20,
+    alignSelf: 'flex-start',
+    color:'#7c6860',
+  },
+  logo:{
+    width:140,
+    height:70,
+  },
+
+
+  // inicio Scroll
+  scrollView:{
+    flex:1,
+  },
+  scrollContent:{
+    padding: 20,
+    paddingBottom: 40,
+    backgroundColor: '#FBEBD7'
+  },
+  
+  // bienvenida
+  headerProfile:{
+    alignItems: 'center',
+  },
+  fotoPerfil:{
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#F8EBD7',
+    marginBottom: 10,
+    marginTop:40,
+    backgroundColor: '#FBF1F0',
   },
-  logo: {
-    width: 200,
-    height: 200,
-    marginBottom: 20,
+  nombrePerfil:{
+    fontSize:20,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    color:'#6D512A',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-  },
-  button: {
-    backgroundColor: '#D94A3D',
-    paddingVertical: 10,
-    paddingHorizontal: 40,
-    borderRadius: 5,
-    marginTop: 20,
-  },
-  buttonText: {
-    color: '#FBF1F0',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  
 });
-

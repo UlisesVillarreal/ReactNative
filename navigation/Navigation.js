@@ -36,7 +36,7 @@ export default function Navigation() {
     <NavigationContainer>
       <Stack.Navigator>
         {user ? (
-          <Stack.Screen name="Home" component={Home} options={{ title: 'Inicio', headerStyle: { backgroundColor: '#F8EBD7' } }} />
+          <Stack.Screen name="Home" component={Home} options={{ headerShown:false }} />
         ) : (
           <>
             <Stack.Screen name="Login" component={Login} options={{ headerShown:false }} />
