@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -14,6 +15,7 @@ const firebaseConfig = {
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
 let auth = null;
+let db = null;
 if (isFirebaseConfigured) {
   const app = initializeApp(firebaseConfig);
   try {
@@ -22,6 +24,8 @@ if (isFirebaseConfigured) {
     if (error.code !== 'auth/already-initialized') throw error;
     auth = getAuth(app);
   }
+  db = getFirestore(app);
 }
 
-export { auth };
+export { auth, db };
+
