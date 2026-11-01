@@ -33,11 +33,14 @@ export default function MenuModal({ visible, onClose, onLogout, navigation }) {
                         <Text style={styles.menuTitle}>Menú Principal</Text>
 
                         {/* Seccion de NAVEGACIÓN */}
-                        <MenuItem title="Inicio" icon="home-outline" active={false} />
+                        <MenuItem title="Inicio" icon="home-outline" active={true} 
+                            onPress={() => {
+                                onClose();
+                                navigation.navigate('Home');
+                            }}
+                        />
                         <MenuItem title="Empleados" icon="account-group-outline" active={false} />
                         <MenuItem title="Asistencia" icon="calendar-check-outline" active={false} />
-
-                        {/* Primera sección habilitada */}
                         <MenuItem title="Servicios" icon="spa-outline" active={true}
                             onPress={()=> {
                             onClose();
@@ -51,8 +54,6 @@ export default function MenuModal({ visible, onClose, onLogout, navigation }) {
                         {/* Seccion De PERFIL/CONFIGURACIÓN/SESIÓN */}
                         <MenuItem title="Editar perfil" icon="account-edit-outline" active={false} />
                         <MenuItem title="Configuraciones" icon="cog-outline" active={false} />
-
-                        {/* Boton de cerrar Sesión */}
                         <MenuItem title="Cerrar sesión" icon="logout" active={true} 
                             onPress={() => {
                             onClose(); 
@@ -71,13 +72,13 @@ export default function MenuModal({ visible, onClose, onLogout, navigation }) {
 const styles=StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
         justifyContent: 'center',
         alignItems: 'center',
     },
     menuContainer: {
         width: '80%',
-        backgroundColor: '#FBF1F0',
+        backgroundColor: '#F2e3c8',
         borderRadius: 20,
         padding: 20,
         shadowColor: '#000',
@@ -111,7 +112,8 @@ const styles=StyleSheet.create({
     },
     divider: {
     height: 1,
-    backgroundColor: '#EAEAEA',
+    backgroundColor: '#fbebd7',
     marginVertical: 15,
+    marginTop:20,
     }
 }); 
