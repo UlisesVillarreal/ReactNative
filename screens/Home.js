@@ -18,7 +18,7 @@ export default function Home({ navigation }) {
   return (
     <View style={styles.container}>
       <Image source={require('../assets/logotemple.png')} style={styles.logo} />
-      <Text style={styles.title}>Bienvenido a Temple Estetique</Text>
+      <Text style={styles.title}>Bienvenido a Temple Estetique.</Text>
       <TouchableOpacity style={styles.button} onPress={handleLogOut}>
         <Text style={styles.buttonText}>Cerrar sesión</Text>
       </TouchableOpacity>
