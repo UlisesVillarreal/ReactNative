@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ActivityIndicator, ScrollView, View, Text, TouchableOpacity, StyleSheet, Alert, Image} from 'react-native';
 import { signOut } from 'firebase/auth';
-import { auth } from '../src/config/firebaseConfig';
+import { auth, db } from '../src/config/firebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFonts, PlayfairDisplay_400Regular, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
@@ -11,19 +12,56 @@ import MenuModal from '../components/MenuModal';
 
 
 export default function Home({ navigation }) {
-  const [mostrarFoto, setMostrarFoto] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        // obtenemos al usuario actual
+        const currentUser = auth.currentUser;
+
+        if (currentUser) {
+          // Creamos una referencia al documento del usuario usando su UID
+          const userDocRef = doc(db, 'usuarios', currentUser.uid);
+          
+          // Traemos el documento de Firestore
+          const userDocSnap = await getDoc(userDocRef);
+
+          if (userDocSnap.exists()) {
+            setUserData(userDocSnap.data());
+          } else {
+            console.log("No se encontró el perfil en la base de datos.");
+          }
+        }
+      } catch (error) {
+        console.error("Error al obtener los datos del usuario:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   let [fontsLoaded] = useFonts({
     PlayfairDisplay_400Regular,
     PlayfairDisplay_700Bold,
   });
 
-  if (!fontsLoaded) {
-    return <ActivityIndicator size="large" />;
+  if (!fontsLoaded || loading) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#B88A3B" />
+        <Text style={{ color: '#6D512A', marginTop: 15, fontFamily: 'PlayfairDisplay_700Bold' }}>
+          Cargando perfil...
+        </Text>
+      </SafeAreaView>
+    );
   }
-
+  
+  
   const handleLogOut = async () => {
     try {
       await signOut(auth);  
@@ -34,6 +72,8 @@ export default function Home({ navigation }) {
     }
   };
 
+  
+  
 
   return (
     <SafeAreaView style={styles.container}>
@@ -54,19 +94,20 @@ export default function Home({ navigation }) {
 
         {/* bienvenida */}
         <View style={styles.headerProfile}>
-
           <Text style={styles.tittle}>Mi Perfil</Text>
           <Text style={styles.subTittle}>Página principal de Temple Estetique</Text>
           <Image source={require('../assets/Usuario.webp')} style={styles.fotoPerfil} resizeMode="contain"/>
-          <Text style={styles.nombrePerfil}>Bienvenido "Usuario"</Text>
+          <Text style={styles.nombrePerfil}>
+            Bienvenido, {userData ? userData.nombre : '...'}
+          </Text>
         </View>
 
         <PersonalInfoCard 
-          nombre="Mariana Figueroa"
-          dni="43578376"
-          correo="marianafigue@gmail.com"
-          telefono="+54 387 555 0126"
-          fechaIngreso="06/10/2026"
+          nombre={userData ? `${userData.nombre} ${userData.apellido}` : 'Cargando...'}
+          dni={userData ? userData.dni : 'Cargando...'}
+          correo={userData ? userData.correo : 'Cargando...'}
+          telefono={userData ? userData.telefono : 'Cargando...'}
+          fechaIngreso={userData ? 'Activo' : 'Cargando...'} 
         />
 
 
