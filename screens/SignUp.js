@@ -1,23 +1,32 @@
-import React, { useState } from 'react';
-import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, KeyboardAvoidingView, Platform} from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { auth } from '../src/config/firebaseConfig';
+import { auth, db } from '../src/config/firebaseConfig';
+import { doc, setDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
 export default function SignUp({ navigation }) {
+
+  // info personal
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [dni, setDni] = useState('');
   const [tel, setTel] = useState('');
+
+  // Datos de cuenta
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
   //Estados para los mensajes de validacion
   const [errors,setErrors] = useState({});
+  const [isFormValid, setIsFormValid] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState('');
   const [passwordStrengthColor, setPasswordStrengthColor] = useState('');
+
   // funcion para medir la seguridad de la contraseña
   const checkPasswordStrength = (password) => {
     if (password.length === 0) {
@@ -66,369 +75,335 @@ export default function SignUp({ navigation }) {
       met: /[^A-Za-z0-9]/.test(password),
     },
   ];
+
+
   // -- VALIDACIONES --
-  const handleSignUp = async () => {
+  useEffect(() => {
     const newErrors = {};
-//Validacion de Campos obligatorios
+    let formIsValid = true;
 
-
-  if (!firstName.trim()) {
-    newErrors.firstName = 'El nombre es obligatorio.';
-  }
-  if (!lastName.trim()) {
-    newErrors.lastName = 'El apellido es obligatorio.';
-  }
-  if (!dni.trim()) {
-    newErrors.dni = 'El DNI es obligatorio.';
-  } else if (!/^\d{7,8}$/.test(dni.trim())) {
-    newErrors.dni = 'El DNI debe tener entre 7 y 8 dígitos.';
-  }
-  if (!email.trim()) {
-    newErrors.email = 'El correo electrónico es obligatorio.';
-  } else {
+    // Regex
+    const nameRegex = /^[a-zA-Z\sñÑ\u00C0-\u017F]+$/;
     const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
-    if (!emailRegex.test(email.trim())) {
-      newErrors.email = 'Ingresá un correo electrónico válido.';
-    }
-  }
-  if (!password) {
-    newErrors.password = 'La contraseña es obligatoria.';
-  }  
-  if (!confirmPassword) {
-    newErrors.confirmPassword = 'La confirmación de la contraseña es obligatoria.';
-  } 
-  setErrors(newErrors);
-
-  if (Object.keys(newErrors).length > 0) {
-    return;
-  }
-    // validación de Nombre
-    const firstNameRegex = /^[a-zA-Z\sñÑ\u00C0-\u017F]+$/;
-    if (!firstNameRegex.test(firstName.trim())) {
-      Alert.alert(
-        "Error",
-        "El nombre ingresado no cumple el formato válido"
-      );
-      return;
-    }
-
-    // validación de Apellido
-    const lastNameRegex = /^[a-zA-Z\sñÑ\u00C0-\u017F]+$/;
-    if (!lastNameRegex.test(lastName.trim())) {
-      Alert.alert(
-        "Error",
-        "El apellido ingresado no cumple el formato válido"
-      );
-      return;
-    }
-
-        // validación de DNI
     const dniRegex = /^\d{7,8}$/;
-    if (!dniRegex.test(dni.trim())) {
-      Alert.alert(
-        "Error",
-        "El DNI ingresado no es válido"
-      );
-      return;
-    }
+    const telRegex = /^\d{10}$/;
 
-    // validación del Teléfono
-
-    if (tel.trim().length > 0) {
-      const telRegex = /^\d{10}$/;
-      if (!telRegex.test(tel.trim())) {
-        Alert.alert(
-          "Error",
-          "El Teléfono ingresado no es válido"
-        );
-        return;
+    // Nombre
+    if (firstName.trim().length > 0) {
+      if (!nameRegex.test(firstName.trim())) {
+        newErrors.firstName = 'Solo se permiten letras.';
+        formIsValid = false;
       }
+    } else {
+      formIsValid = false;
     }
 
-    // Validación de correo
+    // Apellido
+    if (lastName.trim().length > 0) {
+      if (!nameRegex.test(lastName.trim())) {
+        newErrors.lastName = 'Solo se permiten letras.';
+        formIsValid = false;
+      }
+    } else {
+      formIsValid = false;
+    }
+
+    // DNI
+    if (dni.trim().length > 0) {
+      if (!dniRegex.test(dni.trim())) {
+        newErrors.dni = 'Debe tener entre 7 y 8 dígitos, solo números.';
+        formIsValid = false;
+      }
+    } else {
+      formIsValid = false;
+    }
+
+    // Correo
+    if (email.trim().length > 0) {
+      if (!emailRegex.test(email.trim())) {
+        newErrors.email = 'Formato inválido. Ej: usuario@gmail.com';
+        formIsValid = false;
+      }
+    } else {
+      formIsValid = false;
+    }
+
+    // Teléfono (No es obligatorio pero si debe tener el formato correcto)
+    if (tel.trim().length > 0 && !telRegex.test(tel.trim())) {
+      newErrors.tel = 'El teléfono solo debe tener 10 números, sin otros caracteres.';
+      formIsValid = false;
+    }
+
+    // Contraseñas
+    checkPasswordStrength(password);
+    if (password.length === 0) {
+        formIsValid = false;
+    }
+
+    if (confirmPassword.length > 0) {
+      if (password !== confirmPassword) {
+        newErrors.confirmPassword = 'Las contraseñas no coinciden.';
+        formIsValid = false;
+      }
+    } else {
+      formIsValid = false;
+    }
+
+    // Si el medidor de fuerza es Débil o Medio, bloqueamos el botón
+    if (passwordStrength === 'Débil' || passwordStrength === 'Media' || passwordStrength === '') {
+      formIsValid = false;
+    }
+
+    // Actualizamos los estados con los resultados de la revision
+    setErrors(newErrors);
+    setIsFormValid(formIsValid);
+
+  }, [firstName, lastName, dni, tel, email, password, confirmPassword]);
+
+const handleSignUp = async () => {
+    // Si el botón se habilitó por error, cortamos aquí.
+    if (!isFormValid) return; 
+
+    setLoading(true); // "cargando..." del botón
     
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
-    if (!emailRegex.test(email.trim())) {
-      setErrors((prevErrors) => ({
-      ...prevErrors,
-      email: 'Ingresá un correo electrónico válido. Ejemplo: usuario@gmail.com'
-      }));
-      return;
-    }
-
-    setErrors((prevErrors) => ({
-      ...prevErrors,
-      email: ''
-    }));  
-
-    // Validación de confirmación de contraseña
-    if (password !== confirmPassword) {
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        confirmPassword: 'Las contraseñas no coinciden.'
-      }));
-      return;
-    }
-
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
-
-    if (!passwordRegex.test(password)) {
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        password: 'Debe tener al menos 8 caracteres, mayúscula, minúscula, número y símbolo.'
-      }));
-      return;
-}
-
-
-
-    let credential;
     try {
-      credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      // Creamos la cuenta en Firebase Auth
+      const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      const user = credential.user;
+
+      // Guardamos el perfil completo en Firestore vinculando el UID del usuario
+      await setDoc(doc(db, 'usuarios', user.uid), {
+        nombre: firstName.trim(),
+        apellido: lastName.trim(),
+        dni: dni.trim(),
+        telefono: tel.trim(),
+        correo: email.trim().toLowerCase(),
+        rol: 'empleado',
+        fechaRegistro: new Date().toISOString()
+      });
+
+      // Actualizamos el nombre básico en Auth por si acaso
+      await updateProfile(user, { displayName: `${firstName.trim()} ${lastName.trim()}` });
+      
+      Alert.alert("Registro exitoso", "Tu cuenta fue creada correctamente.");
+    
     } catch (error) {
-      console.error('Error de registro:', error.code, error.message);
+      // Manejo de errores de Firebase
       let errorMessage = "Hubo un problema al registrar el usuario.";
-      switch (error.code) {
-        case 'auth/email-already-in-use':
-          errorMessage = "El correo electrónico ya está en uso.";
-          break;
-        case 'auth/invalid-email':
-          errorMessage = "El formato del correo electrónico no es válido.";
-          break;
-        case 'auth/weak-password':
-          errorMessage = "La contraseña es demasiado débil.";
-          break;
-        case 'auth/network-request-failed':
-          errorMessage = "Error de conexión, por favor intenta más tarde.";
-          break;
-        case 'auth/invalid-api-key':
-          errorMessage = "La clave API de Firebase no es válida. Revisa el archivo .env.";
-          break;
-      }
-      Alert.alert("Error", `${errorMessage}\n\nCódigo: ${error.code ?? 'desconocido'}`);
-      return;
+      if (error.code === 'auth/email-already-in-use') errorMessage = "El correo ya está registrado en otra cuenta.";
+      if (error.code === 'auth/network-request-failed') errorMessage = "Error de conexión, revisá tu internet.";
+      
+      Alert.alert("Error de registro", errorMessage);
+    } finally {
+      setLoading(false); // Apagamos el "cargando..."
     }
-
-    try {
-      await updateProfile(credential.user, { displayName: `${firstName.trim()} ${lastName.trim()}` });
-      Alert.alert("Registro exitoso", "Usuario registrado con éxito.");
-    } catch (error) {
-      Alert.alert("Cuenta creada", "La cuenta se creó, pero no se pudo guardar el nombre.");
-    }
-    // Firebase inicia la sesión y el navegador muestra Home.
   };
 
+
   return (
-    <ScrollView 
-      style={styles.scrollView} 
-      contentContainerStyle={styles.container}
-      showsVerticalScrollIndicator={false}
-      >
-      <Image source={require('../assets/logotemple2.png')} style={styles.logo} />
-      <Text style={styles.title}>Crear Cuenta</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: '#F8EBD7' }} 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
 
-        <ScrollView 
-        style={{ width: '100%' }}
-        contentContainerStyle={styles.subContainer}
+      <ScrollView 
+        style={styles.scrollView} 
+        contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         >
-        <Text style={styles.label}>Nombre *</Text>
-        <View style={styles.inputContainer}>
-          <FontAwesome name="user" size={20} style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Ej: Mariano"
-            value={firstName}
-            onChangeText={setFirstName}
-          />
-        </View>
-        
-        {errors.firstName && (
-          <Text style={ styles.errortext }>
-            {errors.firstName}
-        </Text>
-        )}
+        <Image source={require('../assets/logotemple2.png')} style={styles.logo} />
+        <Text style={styles.title}>Crear Cuenta</Text>
 
-        <Text style={styles.label}>Apellido *</Text>
-        <View style={styles.inputContainer}>
-          <FontAwesome name="user" size={20} style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Ej: Tamer"
-            value={lastName}
-            onChangeText={setLastName}
-          />
-        </View>
-        {errors.lastName && (
-          <Text style={ styles.errortext }>
-            {errors.lastName}
-        </Text>
-        )}
-        <Text style={styles.label}>DNI *</Text>
-        <View style={styles.inputContainer}>
-          <FontAwesome name="id-card" size={20} style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Solo el numero, sin '.'"
-            value={dni}
-            onChangeText={setDni}
-            keyboardType="numeric"
-          />
-        </View>
-        {errors.dni && (
-          <Text style={styles.errortext }>
-            {errors.dni}
-          </Text>
-)}
+          <ScrollView 
+          style={{ width: '100%' }}
+          contentContainerStyle={styles.subContainer}
+          showsVerticalScrollIndicator={false}
+          >
 
-        <Text style={styles.label}>Teléfono</Text>
-        <View style={styles.inputContainer}>
-          <FontAwesome name="phone" size={20} style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Sin '0' ni '15', ej: 3875666888"
-            value={tel}
-            onChangeText={setTel}
-            keyboardType="numeric"
-          />
-        </View>
-
-        <Text style={styles.label}>Correo *</Text>
-        <View style={styles.inputContainer}>
-          <FontAwesome name="envelope" size={20} style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="Usuario@gmail.com"
-            value={email}
-            onChangeText={(text) => {
-              setEmail(text);
-
-              const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-
-              if (text.trim() === '') {
-                setErrors((prevErrors) => ({
-                  ...prevErrors,
-                  email: ''
-                }));
-              } else if (!emailRegex.test(text.trim())) {
-                setErrors((prevErrors) => ({
-                  ...prevErrors,
-                  email: 'Ingresá un correo electrónico válido.'
-                }));
-              } else {
-                setErrors((prevErrors) => ({
-                  ...prevErrors,
-                  email: ''
-                }));
-              }
-            }}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-        </View>
-        {errors.email && (
-          <Text style={styles.errortext}>
-            {errors.email}
-          </Text>
-        )}
-
-        <Text style={styles.label}>Contraseña *</Text>
-        <View style={styles.inputContainer}>
-          <FontAwesome name="lock" size={20} style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="********"
-            value={password}
-            onChangeText={(text) => {
-              setPassword(text);
-              checkPasswordStrength(text);
-            }}
-            secureTextEntry={!showPassword}
-          />
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} style={styles.icon}/>
-          </TouchableOpacity>
-        </View>
-
-        {/* Lista dinámica de requisitos */}
-        <View style={styles.passwordRequirementsContainer}>
-          <Text style={styles.passwordRequirementsTitle}>
-            Requisitos de la contraseña:
-          </Text>
-
-          {passwordRequirements.map((requirement, index) => (
-            <View
-              key={index}
-              style={styles.passwordRequirementRow}
-            >
-              <FontAwesome
-                name={requirement.met ? 'check-circle' : 'times-circle'}
-                size={16}
-                color={requirement.met ? '#10B981' : '#D94A3D'}
+            {/* nombre */}
+            <Text style={styles.label}>Nombre *</Text>
+            <View style={styles.inputContainer}>
+              <FontAwesome name="user" size={20} style={styles.icon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Ej: Mariano"
+                value={firstName}
+                onChangeText={setFirstName}
               />
+            </View>
+            
+            {errors.firstName && (
+              <Text style={ styles.errortext }>
+                {errors.firstName}
+            </Text>
+            )}
 
-              <Text
-                style={[
-                  styles.passwordRequirementText,
-                  {
-                    color: requirement.met ? '#10B981' : '#D94A3D',
-                  },
+
+            {/* apellido */}
+            <Text style={styles.label}>Apellido *</Text>
+            <View style={styles.inputContainer}>
+              <FontAwesome name="user" size={20} style={styles.icon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Ej: Tamer"
+                value={lastName}
+                onChangeText={setLastName}
+              />
+            </View>
+            {errors.lastName && (
+              <Text style={ styles.errortext }>
+                {errors.lastName}
+            </Text>
+            )}
+            <Text style={styles.label}>DNI *</Text>
+            <View style={styles.inputContainer}>
+              <FontAwesome name="id-card" size={20} style={styles.icon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Solo el numero, sin '.'"
+                value={dni}
+                onChangeText={setDni}
+                keyboardType="numeric"
+              />
+            </View>
+            {errors.dni && (
+              <Text style={styles.errortext }>
+                {errors.dni}
+              </Text>
+    )}
+
+            {/* telefono */}
+            <Text style={styles.label}>Teléfono</Text>
+            <View style={styles.inputContainer}>
+              <FontAwesome name="phone" size={20} style={styles.icon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Sin '0' ni '15', ej: 3875666888"
+                value={tel}
+                onChangeText={setTel}
+                keyboardType="numeric"
+              />
+            </View>
+            {errors.tel && <Text style={styles.errortext}>{errors.tel}</Text>}
+
+            {/* correo */}
+            <Text style={styles.label}>Correo *</Text>
+            <View style={styles.inputContainer}>
+              <FontAwesome name="envelope" size={20} style={styles.icon} />
+              <TextInput
+                style={styles.input}
+                placeholder="usuario@gmail.com"
+                value={email}
+                
+                onChangeText={setEmail} 
+                
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+            {errors.email && <Text style={styles.errortext}>{errors.email}</Text>}
+
+            {/* contraseña */}
+            <Text style={styles.label}>Contraseña *</Text>
+            <View style={styles.inputContainer}>
+              <FontAwesome name="lock" size={20} style={styles.icon} />
+              <TextInput
+                style={styles.input}
+                placeholder="********"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} style={styles.icon}/>
+              </TouchableOpacity>
+            </View>
+
+            {/* Lista dinámica de requisitos */}
+            <View style={styles.passwordRequirementsContainer}>
+              <Text style={styles.passwordRequirementsTitle}>
+                Requisitos de la contraseña:
+              </Text>
+
+              {passwordRequirements.map((requirement, index) => (
+                <View
+                  key={index}
+                  style={styles.passwordRequirementRow}
+                >
+                  <FontAwesome
+                    name={requirement.met ? 'check-circle' : 'times-circle'}
+                    size={16}
+                    color={requirement.met ? '#10B981' : '#D94A3D'}
+                  />
+
+                  <Text
+                    style={[
+                      styles.passwordRequirementText,
+                      {
+                        color: requirement.met ? '#10B981' : '#D94A3D',
+                      },
+                    ]}
+                  >
+                    {requirement.label}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            {/*Indicator de seguridad */}
+            {passwordStrength !== '' && (
+              <View style={styles.strengthContainer}>
+                <Text style={styles.strengthLabel}>
+                  Seguridad de la contraseña:
+                </Text>
+
+                <Text
+                  style={[
+                    styles.strengthText,
+                    { color: passwordStrengthColor }
                 ]}
               >
-                {requirement.label}
+                {passwordStrength}
               </Text>
+              </View>
+            )}
+            
+            <Text style={styles.label}>Confirmar Contraseña *</Text>
+            <View style={styles.inputContainer}>
+              <FontAwesome name="lock" size={20} style={styles.icon} />
+              <TextInput
+                style={styles.input}
+                placeholder="********"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
+              />
+              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                <FontAwesome name={showConfirmPassword ? "eye-slash" : "eye"} size={20}  style={styles.icon}/>
+              </TouchableOpacity>
             </View>
-          ))}
-        </View>
-        {/*Indicator de seguridad */}
-        {passwordStrength !== '' && (
-          <View style={styles.strengthContainer}>
-            <Text style={styles.strengthLabel}>
-              Seguridad de la contraseña:
-            </Text>
+            {errors.confirmPassword && (
+              <Text style={styles.errortext}>
+                {errors.confirmPassword}
+              </Text>
+            )}
 
-            <Text
-              style={[
-                styles.strengthText,
-                { color: passwordStrengthColor }
-            ]}
-          >
-            {passwordStrength}
-          </Text>
-          </View>
-        )}
-        
-        <Text style={styles.label}>Confirmar Contraseña *</Text>
-        <View style={styles.inputContainer}>
-          <FontAwesome name="lock" size={20} style={styles.icon} />
-          <TextInput
-            style={styles.input}
-            placeholder="********"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry={!showConfirmPassword}
-          />
-          <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-            <FontAwesome name={showConfirmPassword ? "eye-slash" : "eye"} size={20}  style={styles.icon}/>
-          </TouchableOpacity>
-        </View>
-        {errors.confirmPassword && (
-          <Text style={styles.errortext}>
-            {errors.confirmPassword}
-          </Text>
-        )}
+            <TouchableOpacity 
+              style={[styles.button, !isFormValid && { backgroundColor: '#D8B77A80' }]} 
+              onPress={handleSignUp}
+              disabled={!isFormValid} 
+            >  
+              <Text style={styles.buttonText}>Registrarse</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button} onPress={handleSignUp}>  
-          <Text style={styles.buttonText}>Registrarse</Text>
-        </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+              <Text style={styles.signUpText}>¿Ya tienes cuenta? Inicia sesión</Text>
+            </TouchableOpacity>
+          </ScrollView>
+      </ScrollView>
 
-        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.signUpText}>¿Ya tienes cuenta? Inicia sesión</Text>
-        </TouchableOpacity>
-        </ScrollView>
-    </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -436,7 +411,7 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 10,
+    padding: 20,
     paddingBottom: 60,
     backgroundColor: '#F8EBD7',
   },
@@ -467,18 +442,25 @@ const styles = StyleSheet.create({
   },
   subContainer:{
     backgroundColor:'#F2E3C8',
-    alignItems:'center',
+    alignSelf: 'stretch',
+    marginHorizontal: 5,
+    marginTop: 10,
+    marginBottom: 15,
     borderRadius:20,
-    paddingTop:20,
-    paddingLeft:80,
-    paddingRight:80,
-    paddingBottom:30,
+    padding:25,
+    shadowColor:'#6d512a',
+    elevation: 7, 
+
+    // config para IOs 
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15, 
+    shadowRadius: 10,
   },
   logo: {
     width: 200,
     height: 120,
     marginBottom: 10,
-    marginTop:'50',
+    marginTop:50,
   },
   title: {
     color:'#6D512A',
@@ -488,22 +470,23 @@ const styles = StyleSheet.create({
   },
   label: {
     color:'#6D512A',
-    alignSelf: 'flex-start',
     fontSize: 16,
     fontWeight: 'bold',
     marginTop: 10,
+    marginBottom:5,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
     borderColor: '#B88A3B',
-    marginBottom: 20,
-    width: '130%',
+    marginBottom: 15,
+    width: '100%',
   },
   icon: {
-    marginRight: 10,
     color:'#b88a3b',
+    width:25,
+    textAlign:'center',
   },
   input: {
     flex: 1,
