@@ -1,19 +1,24 @@
-    import React, { useState } from 'react';
-    import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, FlatList, Modal, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+    import React, { useState, useEffect } from 'react';
+    import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, FlatList, Modal, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
     import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
+    import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+
+    //  Importaciones de Firebase Firestore
+    import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
+    import { db } from '../src/config/firebaseConfig'; 
+
+    // Importación del Sidebar (Menú lateral)
+    import MenuModal from '../components/MenuModal';
 
     export default function Servicios({ navigation }) {
-    // Estado del listado de servicios
-    const [services, setServices] = useState([
-        { id: '1', empleado: 'Estela Lopez', servicio: 'Depilación Láser Definitiva', monto: '$18.000', fecha: '06/10/2026', hora: '09:30' },
-        { id: '2', empleado: 'Lucía Fernández', servicio: 'Limpieza Facial Profunda', monto: '$24.000', fecha: '06/10/2026', hora: '10:45' },
-        { id: '3', empleado: 'Valentina Ruiz', servicio: 'Masaje Descontracturante', monto: '$22.000', fecha: '05/10/2026', hora: '15:00' },
-        { id: '4', empleado: 'Micaela Guzman', servicio: 'Uñas Soft Gel', monto: '$20.000', fecha: '05/10/2026', hora: '17:15' },
-    ]);
-
+    // Estado del listado de servicios conectado a Firebase
+    const [services, setServices] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Estados para los Modales
+    // Estado para el Sidebar (Menú lateral)
+    const [menuVisible, setMenuVisible] = useState(false);
+
+    // Estados para los Modales de operaciones CRUD
     const [confirmRegisterModalVisible, setConfirmRegisterModalVisible] = useState(false);
     const [registerModalVisible, setRegisterModalVisible] = useState(false);
     const [viewModalVisible, setViewModalVisible] = useState(false);
@@ -33,16 +38,14 @@
     const [errorMsg, setErrorMsg] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // EXPRESIONES REGULARES (REGEX) Y FILTROS
+    // Expresión regular para validar solo números en el monto
     const amountRegex = /^[0-9]+$/;
     
-    // Función para permitir solo letras, acentos, eñes y espacios
     const handleTextOnlyChange = (text, setter) => {
         const filteredText = text.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
         setter(filteredText);
     };
 
-    // Función auxiliar para obtener fecha y hora actual formateada
     const getCurrentDateTime = () => {
         const now = new Date();
         const day = String(now.getDate()).padStart(2, '0');
@@ -57,13 +60,29 @@
         };
     };
 
+    // LEER DATOS EN TIEMPO REAL DESDE FIRESTORE (READ)
+    useEffect(() => {
+        const q = query(collection(db, 'servicios'), orderBy('empleado', 'asc'));
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const lista = [];
+        querySnapshot.forEach((documento) => {
+            lista.push({ id: documento.id, ...documento.data() });
+        });
+        setServices(lista);
+        }, (error) => {
+        console.error("Error al obtener servicios de Firebase: ", error);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
     // Filtrar servicios con includes
     const filteredServices = services.filter((item) => 
-        item.empleado.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.servicio.toLowerCase().includes(searchQuery.toLowerCase())
+        (item.empleado && item.empleado.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (item.servicio && item.servicio.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
-    // --- ACCIONES DE REGISTRO ---
+    // ACCIONES DE REGISTRO 
     const handleOpenRegisterConfirm = () => {
         setConfirmRegisterModalVisible(true);
     };
@@ -78,7 +97,8 @@
         setRegisterModalVisible(true);
     };
 
-    const handleSaveNewService = () => {
+    // CREAR NUEVO SERVICIO EN FIRESTORE (CREATE)
+    const handleSaveNewService = async () => {
         setSubmitted(true);
         const cleanEmpleado = formEmpleado.trim();
         const cleanServicio = formServicio.trim();
@@ -94,28 +114,30 @@
         const { fecha, hora } = getCurrentDateTime();
 
         setLoading(true);
-        setTimeout(() => {
-        const nuevo = {
-            id: Date.now().toString(),
+        try {
+        await addDoc(collection(db, 'servicios'), {
             empleado: cleanEmpleado,
             servicio: cleanServicio,
             monto: formattedAmount,
             fecha: fecha,
             hora: hora
-        };
-        setServices([nuevo, ...services]);
-        setLoading(false);
+        });
         setRegisterModalVisible(false);
-        }, 600);
+        } catch (error) {
+        console.error("Error al guardar en Firebase:", error);
+        setErrorMsg("No se pudo conectar con la base de datos.");
+        } finally {
+        setLoading(false);
+        }
     };
 
-    // --- ACCIONES DE VER ---
+    // ACCIONES DE VER 
     const handleOpenView = (item) => {
         setSelectedService(item);
         setViewModalVisible(true);
     };
 
-    // --- ACCIONES DE EDITAR ---
+    // ACCIONES DE EDITAR 
     const handleOpenEdit = (item) => {
         setSelectedService(item);
         setFormEmpleado(item.empleado);
@@ -126,7 +148,8 @@
         setEditModalVisible(true);
     };
 
-    const handleUpdateService = () => {
+    // ACTUALIZAR SERVICIO EN FIRESTORE (UPDATE) 
+    const handleUpdateService = async () => {
         setSubmitted(true);
         const cleanEmpleado = formEmpleado.trim();
         const cleanServicio = formServicio.trim();
@@ -142,51 +165,65 @@
         const { fecha, hora } = getCurrentDateTime();
 
         setLoading(true);
-        setTimeout(() => {
-        const updatedList = services.map((item) => {
-            if (item.id === selectedService.id) {
-            return {
-                ...item,
-                empleado: cleanEmpleado,
-                servicio: cleanServicio,
-                monto: formattedAmount,
-                fecha: fecha,
-                hora: hora
-            };
-            }
-            return item;
+        try {
+        const docRef = doc(db, 'servicios', selectedService.id);
+        await updateDoc(docRef, {
+            empleado: cleanEmpleado,
+            servicio: cleanServicio,
+            monto: formattedAmount,
+            fecha: fecha,
+            hora: hora
         });
-        setServices(updatedList);
-        setLoading(false);
         setEditModalVisible(false);
-        }, 600);
+        } catch (error) {
+        console.error("Error al actualizar en Firebase:", error);
+        setErrorMsg("No se pudo actualizar el registro.");
+        } finally {
+        setLoading(false);
+        }
     };
 
-    // --- ACCIONES DE ELIMINAR ---
+    //  ACCIONES DE ELIMINAR 
     const handleOpenDelete = (item) => {
         setSelectedService(item);
         setDeleteModalVisible(true);
     };
 
-    const handleDeleteService = () => {
+    // ELIMINAR SERVICIO DE FIRESTORE (DELETE) 
+    const handleDeleteService = async () => {
         setLoading(true);
-        setTimeout(() => {
-        setServices(services.filter((item) => item.id !== selectedService.id));
-        setLoading(false);
+        try {
+        await deleteDoc(doc(db, 'servicios', selectedService.id));
         setDeleteModalVisible(false);
         setSelectedService(null);
-        }, 600);
+        } catch (error) {
+        console.error("Error al eliminar de Firebase:", error);
+        Alert.alert("Error", "No se pudo eliminar el registro.");
+        } finally {
+        setLoading(false);
+        }
+    };
+
+    const handleLogOut = async () => {
+        try {
+        await auth.signOut();
+        navigation.replace('Login');
+        } catch (error) {
+        Alert.alert("Error", "Hubo un problema al cerrar sesión.");
+        }
     };
 
     return (
         <View style={styles.container}>
         
-        {/* Cabecera / Logo y Títulos */}
+        {/* Cabecera / Logo y Títulos con el Botón del Sidebar */}
         <View style={styles.header}>
             <View style={styles.topRowLeft}>
             <Image source={require('../assets/logotemple2.png')} style={styles.logo} />
-            <TouchableOpacity style={styles.menuButton} onPress={() => navigation.openDrawer?.() || console.log('Menú')}>
-                <FontAwesome name="bars" size={22} color="#6D512A" />
+            
+            {/* Botón de tres líneas horizontales para abrir el Sidebar */}
+            <TouchableOpacity style={styles.menuButton} onPress={() => setMenuVisible(true)}>
+                <MaterialCommunityIcons name="menu-open" size={36} color="#6D512A" />
             </TouchableOpacity>
             </View>
             <Text style={styles.title}>Servicios Realizados</Text>
@@ -256,7 +293,7 @@
         />
 
 
-        {/* ================= MODAL 0: CONFIRMACIÓN DE NUEVO REGISTRO ================= */}
+        {/*  MODAL 0: CONFIRMACIÓN DE NUEVO REGISTRO */}
         <Modal
             animationType="fade"
             transparent={true}
@@ -288,7 +325,7 @@
         </Modal>
 
 
-        {/* ================= MODAL 1: FORMULARIO DE REGISTRO ================= */}
+        {/*  MODAL 1: FORMULARIO DE REGISTRO */}
         <Modal
             animationType="fade"
             transparent={true}
@@ -374,7 +411,7 @@
         </Modal>
 
 
-        {/* ================= MODAL 2: VER DETALLE ================= */}
+        {/*  MODAL 2: VER DETALLE */}
         <Modal
             animationType="fade"
             transparent={true}
@@ -409,7 +446,7 @@
         </Modal>
 
 
-        {/* ================= MODAL 3: EDITAR SERVICIO ================= */}
+        {/*MODAL 3: EDITAR SERVICIO */}
         <Modal
             animationType="fade"
             transparent={true}
@@ -492,7 +529,7 @@
         </Modal>
 
 
-        {/* ================= MODAL 4: ELIMINAR SERVICIO ================= */}
+        {/*  MODAL 4: ELIMINAR SERVICIO  */}
         <Modal
             animationType="fade"
             transparent={true}
@@ -523,6 +560,14 @@
             </View>
             </View>
         </Modal>
+
+        {/*  SIDEBAR LATERAL (MENÚ DE NAVEGACIÓN) */}
+        <MenuModal
+            visible={menuVisible}
+            onClose={() => setMenuVisible(false)}
+            onLogout={handleLogOut}
+            navigation={navigation}
+        />
 
         </View>
     );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 export default function MenuModal({ visible, onClose, onLogout, navigation }) {
@@ -9,10 +9,10 @@ export default function MenuModal({ visible, onClose, onLogout, navigation }) {
             style={[styles.menuItem, !active && styles.menuItemDisabled]}
             onPress={onPress}
             disabled={!active}  
-            >
+        >
             <MaterialCommunityIcons 
                 name={icon} 
-                size={24}
+                size={22}
                 color={active ? "#6D512A" : "#B0B0B0"}/>
             <Text style={[styles.menuText, !active && styles.menuTextDisabled]}>
                 {title}
@@ -20,19 +20,21 @@ export default function MenuModal({ visible, onClose, onLogout, navigation }) {
         </TouchableOpacity>
     );
 
-        return(
-            <Modal
-                visible={visible}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={onClose}>
+    return(
+        <Modal
+            visible={visible}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={onClose}>
 
-                <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-                    <TouchableOpacity activeOpacity={1} style={styles.menuContainer}>
+            <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
+                {/* Contenedor lateral tipo Sidebar */}
+                <TouchableOpacity activeOpacity={1} style={styles.menuContainer}>
+                    <ScrollView showsVerticalScrollIndicator={false}>
 
                         <Text style={styles.menuTitle}>Menú Principal</Text>
 
-                        {/* Seccion de NAVEGACIÓN */}
+                        {/* Sección de NAVEGACIÓN */}
                         <MenuItem title="Inicio" icon="home-outline" active={true} 
                             onPress={() => {
                                 onClose();
@@ -40,80 +42,81 @@ export default function MenuModal({ visible, onClose, onLogout, navigation }) {
                             }}
                         />
                         <MenuItem title="Empleados" icon="account-group-outline" active={false} />
-                        <MenuItem title="Asistencia" icon="calendar-check-outline" active={false} />
-                        <MenuItem title="Servicios" icon="spa-outline" active={true}
+                        <MenuItem title="Asistencias" icon="calendar-check-outline" active={false} />
+                        
+                        {/* 🛠️ Aquí apunta exactamente al archivo Services.js */}
+                        <MenuItem title="Servicios realizados" icon="spa-outline" active={true}
                             onPress={()=> {
-                            onClose();
-                            navigation.navigate('Services');
+                                onClose();
+                                navigation.navigate('Services');
                             }}
                         />
                         <MenuItem title="Reportes" icon="chart-box-outline" active={false} />
 
                         <View style={styles.divider} />
 
-                        {/* Seccion De PERFIL/CONFIGURACIÓN/SESIÓN */}
+                        {/* Sección De PERFIL / CONFIGURACIÓN / SESIÓN */}
                         <MenuItem title="Editar perfil" icon="account-edit-outline" active={false} />
                         <MenuItem title="Configuraciones" icon="cog-outline" active={false} />
                         <MenuItem title="Cerrar sesión" icon="logout" active={true} 
                             onPress={() => {
-                            onClose(); 
-                            onLogout();
+                                onClose(); 
+                                onLogout();
                             }} 
                         />
-                    </TouchableOpacity>
+                    </ScrollView>
                 </TouchableOpacity>
-            
-            </Modal>
-
+            </TouchableOpacity>
+        </Modal>
     );
 }
 
-
-const styles=StyleSheet.create({
+const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        justifyContent: 'center',
-        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        justifyContent: 'flex-start',
+        alignItems: 'flex-start',
     },
     menuContainer: {
-        width: '80%',
-        backgroundColor: '#F2e3c8',
-        borderRadius: 20,
-        padding: 20,
+        width: '75%',
+        height: '100%',
+        backgroundColor: '#F2E3C8',
+        paddingTop: 60,
+        paddingHorizontal: 20,
         shadowColor: '#000',
         elevation: 10,
     },
     menuTitle: {
-        fontSize: 22,
-        fontFamily: 'PlayfairDisplay_700Bold',
+        fontSize: 20,
+        fontWeight: 'bold',
         color: '#6D512A',
         marginBottom: 20,
-        textAlign: 'center',
+        paddingLeft: 10,
     },
     menuItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12,
+        paddingVertical: 14,
         paddingHorizontal: 10,
-        borderRadius: 10,
+        borderRadius: 12,
+        marginBottom: 4,
     },
     menuItemDisabled: {
-        opacity: 0.7,
+        opacity: 0.6,
     },
     menuText: {
-        fontSize: 16,
+        fontSize: 15,
         color: '#333',
         marginLeft: 15,
-        fontWeight: '500',
+        fontWeight: '600',
     },
     menuTextDisabled: {
-    color: '#B0B0B0', // Texto gris para los deshabilitados
+        color: '#B0B0B0',
     },
     divider: {
-    height: 1,
-    backgroundColor: '#fbebd7',
-    marginVertical: 15,
-    marginTop:20,
+        height: 1,
+        backgroundColor: '#E5D3B3',
+        marginVertical: 15,
     }
-}); 
+});

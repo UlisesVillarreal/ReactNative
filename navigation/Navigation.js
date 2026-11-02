@@ -39,12 +39,13 @@ export default function Navigation() {
         {user ? (
           <>
             <Stack.Screen name="Home" component={Home} options={{ headerShown:false }} />
-            {/* <Stack.Screen name="Services" component={Services} options={{ headerShown:false }} /> */}
+            <Stack.Screen name="Services" component={Services} options={{ headerShown:false }} />
           </>
         ) : (
           <>
             <Stack.Screen name="Login" component={Login} options={{ headerShown:false }} />
             <Stack.Screen name="SignUp" component={SignUp} options={{ headerShown:false }} />
+            <Stack.Screen name="Servicios" component={Services} options={{ headerShown:false }} />
 
           </> 
         )}
