@@ -182,11 +182,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop:40,
     backgroundColor: '#FBF1F0',
-  },
-  nombrePerfil:{
-    fontSize:20,
-    fontFamily: 'PlayfairDisplay_700Bold',
-    color:'#6D512A',
-  },
+    },
+    nombrePerfil:{
+      fontSize:20,
+      fontFamily: 'PlayfairDisplay_700Bold',
+      color:'#6D512A',
+    },
   
 });
