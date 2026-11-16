@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Modal, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Modal, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, ImageBackground } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5'; 
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
@@ -122,12 +122,13 @@ export default function Login({ navigation }) {
   };
 
   return (
+  <ImageBackground source={require('../assets/fondo.jpeg')} style={styles.container} resizeMode="cover" >
     <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+          style={{ flex: 1, width: '100%' }} 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+      
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
-        
         <Image source={require('../assets/logotemple.png')} style={styles.logo} />
         <Text style={styles.title}>Iniciar sesión</Text>
         <Text style={styles.text}>Ingrese su correo electrónico y contraseña para continuar</Text>
@@ -350,13 +351,15 @@ export default function Login({ navigation }) {
 
       </ScrollView>
     </KeyboardAvoidingView>
+  </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FBEBD7',
+    width: '100%',
+    height: '100%',
   },
   scrollContainer: {
     flexGrow: 1,
