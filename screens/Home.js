@@ -23,7 +23,6 @@ export default function Home({ navigation }) {
         const currentUser = auth.currentUser;
 
         if (currentUser) {
-          // Creamos una referencia al documento del usuario usando su UID
           const userDocRef = doc(db, 'usuarios', currentUser.uid);
           
           // Traemos el documento de Firestore
@@ -107,7 +106,11 @@ export default function Home({ navigation }) {
           dni={userData ? userData.dni : 'Cargando...'}
           correo={userData ? userData.correo : 'Cargando...'}
           telefono={userData ? userData.telefono : 'Cargando...'}
-          fechaIngreso={userData ? 'Activo' : 'Cargando...'} 
+          fechaIngreso={
+            userData && userData.fechaRegistro 
+              ? new Date(userData.fechaRegistro).toLocaleDateString('es-AR') 
+              : 'Cargando...'
+          } 
         />
 
 

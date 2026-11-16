@@ -38,7 +38,7 @@ export default function SignUp({ navigation }) {
     const hasUpperCase = /[A-Z]/.test(password);
     const hasLowerCase = /[a-z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
-    const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>\-_=+[\];/\\~]/.test(password);
 
     const requirementsMet = [hasMinLength, hasUpperCase, hasLowerCase, hasNumber, hasSpecialChar].filter(Boolean).length;
 
@@ -72,7 +72,7 @@ export default function SignUp({ navigation }) {
     },
     {
       label: 'Un carácter especial (@, #, !)',
-      met: /[^A-Za-z0-9]/.test(password),
+      met: /[!@#$%^&*(),.?":{}|<>\-_=+[\];/\\~]/.test(password),
     },
   ];
 
@@ -136,8 +136,9 @@ export default function SignUp({ navigation }) {
 
     // Contraseñas
     checkPasswordStrength(password);
-    if (password.length === 0) {
-        formIsValid = false;
+    if (/\s/.test(password)) {
+      newErrors.password = 'La contraseña no puede contener espacios en blanco.';
+      formIsValid = false;
     }
 
     if (confirmPassword.length > 0) {
@@ -319,6 +320,8 @@ const handleSignUp = async () => {
                 <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} style={styles.icon}/>
               </TouchableOpacity>
             </View>
+
+            {errors.password && <Text style={styles.errortext}>{errors.password}</Text>}
 
             {/* Lista dinámica de requisitos */}
             <View style={styles.passwordRequirementsContainer}>
