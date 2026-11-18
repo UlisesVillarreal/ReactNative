@@ -44,7 +44,7 @@ export default function MenuModal({ visible, onClose, onLogout, navigation }) {
                         <MenuItem title="Empleados" icon="account-group-outline" active={false} />
                         <MenuItem title="Asistencias" icon="calendar-check-outline" active={false} />
                         
-                        {/* 🛠️ Aquí apunta exactamente al archivo Services.js */}
+                        {/* Aquí apunta exactamente al archivo Services.js */}
                         <MenuItem title="Servicios realizados" icon="spa-outline" active={true}
                             onPress={()=> {
                                 onClose();
