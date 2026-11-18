@@ -1,31 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { ActivityIndicator, ScrollView, View, Text, TouchableOpacity, StyleSheet, Alert, Image} from 'react-native';
+import { ActivityIndicator, ScrollView, View, Text, TouchableOpacity, StyleSheet, Modal, ImageBackground, Dimensions} from 'react-native';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../src/config/firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Ionicons } from '@expo/vector-icons';
 import { useFonts, PlayfairDisplay_400Regular, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import PersonalInfoCard from '../components/PersonalInfoCard';
 import MenuModal from '../components/MenuModal';
 
-
+const { height, width } = Dimensions.get('window');
 
 export default function Home({ navigation }) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Estados para el Modal Institucional de Cierre de Sesión
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // obtenemos al usuario actual
         const currentUser = auth.currentUser;
-
         if (currentUser) {
           const userDocRef = doc(db, 'usuarios', currentUser.uid);
-          
-          // Traemos el documento de Firestore
           const userDocSnap = await getDoc(userDocRef);
 
           if (userDocSnap.exists()) {
@@ -51,70 +50,107 @@ export default function Home({ navigation }) {
 
   if (!fontsLoaded || loading) {
     return (
-      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color="#B88A3B" />
         <Text style={{ color: '#6D512A', marginTop: 15, fontFamily: 'PlayfairDisplay_700Bold' }}>
           Cargando perfil...
         </Text>
-      </SafeAreaView>
+      </View>
     );
   }
   
-  
-  const handleLogOut = async () => {
+  const handleLogOut = () => {
+    setLogoutModalVisible(true);
+  };
+
+  const confirmLogOut = async () => {
+    setLogoutModalVisible(false);
     try {
       await signOut(auth);  
-      Alert.alert("Sesión cerrada", "Has cerrado sesión correctamente.");
-      // El observador de Firebase muestra Login al cerrar la sesión.
     } catch (error) {
-      Alert.alert("Error", "Hubo un problema al cerrar sesión.");
+      console.error("Error al cerrar sesión:", error);
     }
   };
 
-  
-  
-
   return (
-    <SafeAreaView style={styles.container}>
-
-      {/* navbar */}
-      <View style={styles.navbar}>
-
-        <Image source={require('../assets/logotemple2.png')} style={styles.logo} resizeMode="contain" />
-        
-        <TouchableOpacity onPress={() => setMenuVisible(true)}>
-          <MaterialCommunityIcons name="menu-open" size={40} color="#B88A3B" />
-        </TouchableOpacity>
-
-      </View>
-
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-
-
-        {/* bienvenida */}
-        <View style={styles.headerProfile}>
-          <Text style={styles.tittle}>Mi Perfil</Text>
-          <Text style={styles.subTittle}>Página principal de Temple Estetique</Text>
-          <Image source={require('../assets/Usuario.webp')} style={styles.fotoPerfil} resizeMode="contain"/>
-          <Text style={styles.nombrePerfil}>
-            Bienvenido, {userData ? userData.nombre : '...'}
-          </Text>
+    <View style={styles.container}>
+      {/* Imagen de fondo abarcando toda la pantalla */}
+      <ImageBackground 
+        source={require('../assets/fonoperfil.jpeg')} 
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      >
+        {/* Navbar con el botón de menú a la DERECHA */}
+        <View style={styles.navbar}>
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity style={styles.menuButton} onPress={() => setMenuVisible(true)}>
+            <MaterialCommunityIcons name="menu-open" size={36} color="#6D512A" />
+          </TouchableOpacity>
         </View>
 
-        <PersonalInfoCard 
-          nombre={userData ? `${userData.nombre} ${userData.apellido}` : 'Cargando...'}
-          dni={userData ? userData.dni : 'Cargando...'}
-          correo={userData ? userData.correo : 'Cargando...'}
-          telefono={userData ? userData.telefono : 'Cargando...'}
-          fechaIngreso={
-            userData && userData.fechaRegistro 
-              ? new Date(userData.fechaRegistro).toLocaleDateString('es-AR') 
-              : 'Cargando...'
-          } 
-        />
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
+          {/* Encabezado de Perfil */}
+          <View style={styles.headerProfile}>
+            <Text style={styles.tittle}>Mi Perfil</Text>
+            <Text style={styles.subTittle}>Página principal de Temple Estetique</Text>
+            
+            {/* Avatar con el icono person-circle de Ionicons */}
+            <View style={styles.fotoPerfilContainer}>
+              <Ionicons name="person-circle-outline" size={85} color="#B88A3B" />
+            </View>
 
-      </ScrollView>
+            {/* Texto de bienvenida con la fuente Playfair Display */}
+            <Text style={styles.nombrePerfil}>
+              Bienvenido, {userData ? userData.nombre : '...'}
+            </Text>
+          </View>
+
+          <PersonalInfoCard 
+            nombre={userData ? `${userData.nombre} ${userData.apellido}` : 'Cargando...'}
+            dni={userData ? userData.dni : 'Cargando...'}
+            correo={userData ? userData.correo : 'Cargando...'}
+            telefono={userData ? userData.telefono : 'Cargando...'}
+            fechaIngreso={
+              userData && userData.fechaRegistro 
+                ? new Date(userData.fechaRegistro).toLocaleDateString('es-AR') 
+                : 'Cargando...'
+            } 
+          />
+
+        </ScrollView>
+      </ImageBackground>
+
+      {/* Modal Institucional de Cierre de Sesión */}
+      <Modal
+          animationType="fade"
+          transparent={true}
+          visible={logoutModalVisible}
+          onRequestClose={() => setLogoutModalVisible(false)}
+      >
+          <View style={styles.customModalOverlay}>
+              <View style={styles.customModalBox}>
+                  <Text style={styles.customModalTitle}>¿Desea cerrar sesión?</Text>
+                  <Text style={styles.customModalSubtitle}>Deberá iniciar sesión nuevamente para ingresar al sistema.</Text>
+
+                  <View style={styles.customModalButtonRow}>
+                      <TouchableOpacity 
+                          style={styles.customCancelBtn} 
+                          onPress={() => setLogoutModalVisible(false)}
+                      >
+                          <Text style={styles.customCancelText}>Cancelar</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity 
+                          style={styles.customContinueBtn} 
+                          onPress={confirmLogOut}
+                      >
+                          <Text style={styles.customContinueText}>Continuar</Text>
+                      </TouchableOpacity>
+                  </View>
+              </View>
+          </View>
+      </Modal>
 
       <MenuModal
         visible={menuVisible}
@@ -123,73 +159,154 @@ export default function Home({ navigation }) {
         navigation={navigation}
       />
 
-    </SafeAreaView>
-
+    </View>
   );
 }
 
-
 const styles = StyleSheet.create({
-
   container:{
-    flex:1,
-    backgroundColor:'#F2E3C8',
+    flex: 1,
+    backgroundColor: '#FBEBD7',
+  },
+  
+  // Imagen de fondo absoluta cubriendo todo
+  backgroundImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: width,
+    height: height,
   },
     
-  // navbar
+  // Navbar con el menú a la derecha
   navbar:{
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: '#F2E3C8',
+    paddingHorizontal: 15,
+    paddingTop: 40,
+    paddingBottom: 5,
+    backgroundColor: 'transparent',
+  },
+  menuButton: {
+    padding: 6,
   },
   tittle:{
-    fontSize: 40,
-    fontFamily: 'PlayfairDisplay_400Regular',
+    fontSize: 30,
+    fontFamily: 'PlayfairDisplay_700Bold',
     alignSelf: 'flex-start',
     color:'#6D512A',
+    
   },
-    subTittle:{
-    fontSize: 20,
+  subTittle:{
+    fontSize: 15,
+    fontFamily: 'PlayfairDisplay_700Bold',
     alignSelf: 'flex-start',
-    color:'#7c6860',
-  },
-  logo:{
-    width:140,
-    height:70,
+    color:'#7C6860',
+    marginTop: 3,
   },
 
-
-  // inicio Scroll
+  // Scroll
   scrollView:{
-    flex:1,
+    flex: 1,
   },
   scrollContent:{
     padding: 20,
-    paddingBottom: 40,
-    backgroundColor: '#FBEBD7'
+    paddingBottom: 50,
+    backgroundColor: 'transparent',
   },
   
-  // bienvenida
+  // Bienvenida y Perfil
   headerProfile:{
     alignItems: 'center',
+    marginTop: 23,
+
   },
-  fotoPerfil:{
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  fotoPerfilContainer:{
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
-    marginTop:40,
-    backgroundColor: '#FBF1F0',
-    },
-    nombrePerfil:{
-      fontSize:20,
-      fontFamily: 'PlayfairDisplay_700Bold',
-      color:'#6D512A',
-    },
-  
+    marginTop: 15,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#D4B279',
+    shadowColor: '#6d512a',
+    elevation: 3,
+  },
+  nombrePerfil:{
+    fontSize: 21,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    color:'#6D512A',
+  },
+
+  // Estilos del Modal Institucional
+  customModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(50, 35, 20, 0.75)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+  },
+  customModalBox: {
+      backgroundColor: '#F2E3C8',
+      borderRadius: 24,
+      padding: 24,
+      width: '90%',
+      maxWidth: 360,
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 6 },
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+      elevation: 10,
+  },
+  customModalTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#4A3B32',
+      textAlign: 'center',
+      marginBottom: 12,
+      lineHeight: 26,
+  },
+  customModalSubtitle: {
+      fontSize: 14,
+      color: '#7C6860',
+      textAlign: 'center',
+      marginBottom: 24,
+      lineHeight: 20,
+  },
+  customModalButtonRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      width: '100%',
+      gap: 12,
+  },
+  customCancelBtn: {
+      flex: 1,
+      backgroundColor: '#7A6B62',
+      paddingVertical: 14,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+  },
+  customCancelText: {
+      color: '#FFFFFF',
+      fontSize: 15,
+      fontWeight: 'bold',
+  },
+  customContinueBtn: {
+      flex: 1,
+      backgroundColor: '#D49B37',
+      paddingVertical: 14,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+  },
+  customContinueText: {
+      color: '#FFFFFF',
+      fontSize: 15,
+      fontWeight: 'bold',
+  },
 });

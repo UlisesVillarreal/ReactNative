@@ -103,6 +103,7 @@ export default function ServiceFormModal({
                                 keyboardType="numeric" 
                                 value={formMonto} 
                                 onChangeText={(text) => setFormMonto(text.replace(/[^0-9]/g, ''))} 
+                                maxLength={7}
                             />
                         </View>
                         {submitted && (!formMonto.trim() || !amountRegex.test(formMonto)) && (

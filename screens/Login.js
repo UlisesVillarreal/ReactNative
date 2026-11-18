@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     color: '#6D512A',
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: 'bold',
     textAlign: 'center',
   },
