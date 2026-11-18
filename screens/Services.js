@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Modal, ImageBackground, Dimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, FlatList, Alert } from 'react-native';
 import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 // Firebase Firestore
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { auth, db } from '../src/config/firebaseConfig';
-import { signOut } from 'firebase/auth';
+import { db } from '../src/config/firebaseConfig';
 // Componentes
 import MenuModal from '../components/MenuModal';
-import ServiceFormModal from '../components/ServiceFormModal';
-
-const { height, width } = Dimensions.get('window');
+import ServiceFormModal from '../components/ServicesModal';
 
 export default function Services({ navigation }) {
     const [services, setServices] = useState([]);
@@ -19,18 +16,9 @@ export default function Services({ navigation }) {
 
     // Estados de modales y edición
     const [registerModalVisible, setRegisterModalVisible] = useState(false);
-    const [viewModalVisible, setViewModalVisible] = useState(false); 
+    const [viewModalVisible, setViewModalVisible] = useState(false); // Estado para el modal de Ver
     const [isEditing, setIsEditing] = useState(false);
     const [selectedService, setSelectedService] = useState(null);
-
-    // Modal de confirmación institucional unificado (para Crear, Editar y Eliminar)
-    const [confirmModalVisible, setConfirmModalVisible] = useState(false);
-    const [confirmTitle, setConfirmTitle] = useState('');
-    const [confirmSubtitle, setConfirmSubtitle] = useState('');
-    const [confirmAction, setConfirmAction] = useState(null);
-
-    // 🌟 Modal Institucional de Cierre de Sesión
-    const [logoutModalVisible, setLogoutModalVisible] = useState(false);
 
     // Campos seleccionados en el formulario
     const [formEmpleado, setFormEmpleado] = useState('');
@@ -74,12 +62,12 @@ export default function Services({ navigation }) {
         (item.servicio && item.servicio.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
-    // Guardar o Actualizar directamente en Firebase al hacer clic en Guardar en el formulario
+    // Guardar o Actualizar en Firebase
     const handleSaveService = async () => {
         setSubmitted(true);
 
         if (!formEmpleado || !formServicio || !formMonto.trim() || !amountRegex.test(formMonto)) {
-            setErrorMsg('Por favor, seleccione el empleado, el servicio y complete un monto válido.');
+            setErrorMsg('Por favor, complete los campos faltantes.');
             return;
         }
 
@@ -116,159 +104,126 @@ export default function Services({ navigation }) {
         }
     };
 
-    // Botón Registrar nuevo servicio
     const handleOpenCreate = () => {
-        setConfirmTitle("¿Desea agregar un nuevo registro de servicio?");
-        setConfirmSubtitle("A continuación podrá completar los datos de la atención realizada.");
-        setConfirmAction(() => () => {
-            setConfirmModalVisible(false);
-            setIsEditing(false);
-            setFormEmpleado('');
-            setFormServicio('');
-            setFormMonto('');
-            setSubmitted(false);
-            setErrorMsg('');
-            setRegisterModalVisible(true);
-        });
-        setConfirmModalVisible(true);
+        setIsEditing(false);
+        setFormEmpleado('');
+        setFormServicio('');
+        setFormMonto('');
+        setSubmitted(false);
+        setErrorMsg('');
+        setRegisterModalVisible(true);
     };
 
-    // Botón Editar
     const handleOpenEdit = (item) => {
-        setConfirmTitle("¿Desea modificar este registro de servicio?");
-        setConfirmSubtitle("Se actualizarán los datos de la atención realizada.");
-        setConfirmAction(() => () => {
-            setConfirmModalVisible(false);
-            setSelectedService(item);
-            setIsEditing(true);
-            setFormEmpleado(item.empleado);
-            setFormServicio(item.servicio);
-            setFormMonto(item.monto.replace(/\D/g, ''));
-            setSubmitted(false);
-            setErrorMsg('');
-            setRegisterModalVisible(true);
-        });
-        setConfirmModalVisible(true);
+        setSelectedService(item);
+        setIsEditing(true);
+        setFormEmpleado(item.empleado);
+        setFormServicio(item.servicio);
+        setFormMonto(item.monto.replace(/\D/g, ''));
+        setSubmitted(false);
+        setErrorMsg('');
+        setRegisterModalVisible(true);
     };
 
+    // Función para abrir el modal de Ver detalle
     const handleOpenView = (item) => {
         setSelectedService(item);
         setViewModalVisible(true);
     };
 
-    // Botón Eliminar
-    const handleDeleteService = (id) => {
-        setConfirmTitle("¿Desea eliminar este registro de servicio?");
-        setConfirmSubtitle("Esta acción no se puede deshacer y borrará el registro.");
-        setConfirmAction(() => async () => {
-            setConfirmModalVisible(false);
-            try {
-                await deleteDoc(doc(db, 'servicios', id));
-            } catch (error) {
-                console.error("Error al eliminar:", error);
-            }
-        });
-        setConfirmModalVisible(true);
-    };
-
-    // Funciones para el Cierre de Sesión
-    const handleLogOut = () => {
-        setLogoutModalVisible(true);
-    };
-
-    const confirmLogOut = async () => {
-        setLogoutModalVisible(false);
-        try {
-            await signOut(auth);
-            navigation.replace('Login');
-        } catch (error) {
-            console.error("Error al cerrar sesión:", error);
-        }
+    const handleDeleteService = async (id) => {
+        Alert.alert(
+            "Eliminar servicio",
+            "¿Está seguro que desea eliminar este registro?",
+            [
+                { text: "Cancelar", style: "cancel" },
+                { 
+                    text: "Eliminar", 
+                    style: "destructive", 
+                    onPress: async () => {
+                        try {
+                            await deleteDoc(doc(db, 'servicios', id));
+                        } catch (error) {
+                            console.error("Error al eliminar:", error);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     return (
         <View style={styles.container}>
-            {/* Imagen de fondo cubriendo toda la pantalla de punta a punta */}
-            <ImageBackground 
-                source={require('../assets/fondoservice.jpeg')} 
-                style={styles.backgroundImage}
-                resizeMode="cover"
-            >
-                {/* Navbar con el botón de menú a la DERECHA y sin logo */}
-                <View style={styles.navbar}>
-                    <View style={{ flex: 1 }} />
+            <View style={styles.header}>
+                <View style={styles.topRowLeft}>
+                    <Image source={require('../assets/logotemple2.png')} style={styles.logo} />
                     <TouchableOpacity style={styles.menuButton} onPress={() => setMenuVisible(true)}>
                         <MaterialCommunityIcons name="menu-open" size={36} color="#6D512A" />
                     </TouchableOpacity>
                 </View>
+                <Text style={styles.title}>Servicios Realizados</Text>
+                <Text style={styles.subtitle}>Registro y seguimiento de cada atención</Text>
+            </View>
 
-                <View style={styles.contentWrapper}>
-                    <View style={styles.header}>
-                        <Text style={styles.title}>Servicios Realizados</Text>
-                        <Text style={styles.subtitle}>Registro y seguimiento de cada atención</Text>
+            {/* Buscador general */}
+            <View style={styles.searchContainer}>
+                <FontAwesome name="search" size={16} color="#B88A3B" style={styles.searchIcon} />
+                <TextInput
+                    style={styles.searchInput}
+                    placeholder="Buscar por empleado o servicio"
+                    placeholderTextColor="#9A8478"
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                />
+            </View>
+
+            {/* Botón Registrar */}
+            <TouchableOpacity style={styles.registerButton} onPress={handleOpenCreate}>
+                <Text style={styles.registerButtonText}>+ Registrar nuevo servicio realizado</Text>
+            </TouchableOpacity>
+
+            <View style={styles.listHeaderRow}>
+                <Text style={styles.sectionTitle}>Últimos servicios</Text>
+                <Text style={styles.counterText}>{filteredServices.length} registros</Text>
+            </View>
+
+            <FlatList
+                data={filteredServices}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listContainer}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => (
+                    <View style={styles.card}>
+                        <View style={styles.cardHeader}>
+                            <Text style={styles.cardEmployee}>{item.empleado}</Text>
+                            <Text style={styles.cardPrice}>{item.monto}</Text>
+                        </View>
+                        <Text style={styles.cardService}>{item.servicio}</Text>
+                        
+                        <View style={styles.divider} />
+
+                        {/* Botones de Acción: Ver, Editar, Eliminar */}
+                        <View style={styles.actionsRow}>
+                            <TouchableOpacity style={styles.actionBtn} onPress={() => handleOpenView(item)}>
+                                <FontAwesome name="eye" size={14} color="#B88A3B" style={styles.actionIcon} />
+                                <Text style={styles.actionTextVer}>Ver</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.actionBtn} onPress={() => handleOpenEdit(item)}>
+                                <FontAwesome5 name="pen" size={13} color="#3A75C4" style={styles.actionIcon} />
+                                <Text style={styles.actionTextEditar}>Editar</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={styles.actionBtn} onPress={() => handleDeleteService(item.id)}>
+                                <FontAwesome name="trash" size={14} color="#D32F2F" style={styles.actionIcon} />
+                                <Text style={styles.actionTextEliminar}>Eliminar</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
+                )}
+            />
 
-                    {/* Buscador general */}
-                    <View style={styles.searchContainer}>
-                        <FontAwesome name="search" size={16} color="#B88A3B" style={styles.searchIcon} />
-                        <TextInput
-                            style={styles.searchInput}
-                            placeholder="Buscar por empleado o servicio"
-                            placeholderTextColor="#9A8478"
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                        />
-                    </View>
-
-                    {/* Botón Registrar */}
-                    <TouchableOpacity style={styles.registerButton} onPress={handleOpenCreate}>
-                        <Text style={styles.registerButtonText}>+ Registrar nuevo servicio realizado</Text>
-                    </TouchableOpacity>
-
-                    <View style={styles.listHeaderRow}>
-                        <Text style={styles.sectionTitle}>Últimos servicios</Text>
-                        <Text style={styles.counterText}>{filteredServices.length} registros</Text>
-                    </View>
-
-                    <FlatList
-                        data={filteredServices}
-                        keyExtractor={(item) => item.id}
-                        contentContainerStyle={styles.listContainer}
-                        showsVerticalScrollIndicator={false}
-                        renderItem={({ item }) => (
-                            <View style={styles.card}>
-                                <View style={styles.cardHeader}>
-                                    <Text style={styles.cardEmployee}>{item.empleado}</Text>
-                                    <Text style={styles.cardPrice}>{item.monto}</Text>
-                                </View>
-                                <Text style={styles.cardService}>{item.servicio}</Text>
-                                
-                                <View style={styles.divider} />
-
-                                {/* Botones de Acción: Ver, Editar, Eliminar */}
-                                <View style={styles.actionsRow}>
-                                    <TouchableOpacity style={styles.actionBtn} onPress={() => handleOpenView(item)}>
-                                        <FontAwesome name="eye" size={14} color="#B88A3B" style={styles.actionIcon} />
-                                        <Text style={styles.actionTextVer}>Ver</Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity style={styles.actionBtn} onPress={() => handleOpenEdit(item)}>
-                                        <FontAwesome5 name="pen" size={13} color="#3A75C4" style={styles.actionIcon} />
-                                        <Text style={styles.actionTextEditar}>Editar</Text>
-                                    </TouchableOpacity>
-
-                                    <TouchableOpacity style={styles.actionBtn} onPress={() => handleDeleteService(item.id)}>
-                                        <FontAwesome name="trash" size={14} color="#D32F2F" style={styles.actionIcon} />
-                                        <Text style={styles.actionTextEliminar}>Eliminar</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-                        )}
-                    />
-                </View>
-            </ImageBackground>
-
-            {/* Componente Modal del Formulario con límite de 6 caracteres para el monto */}
+            {/* Modal de Crear / Editar y de Ver Detalle unificados */}
             <ServiceFormModal 
                 visible={registerModalVisible}
                 onClose={() => setRegisterModalVisible(false)}
@@ -284,78 +239,16 @@ export default function Services({ navigation }) {
                 errorMsg={errorMsg}
                 loading={loading}
                 amountRegex={amountRegex}
+                // Props para el modal de Ver
                 viewMode={viewModalVisible}
                 selectedService={selectedService}
                 onCloseView={() => setViewModalVisible(false)}
-                amountMaxLength={6} 
             />
-
-            {/* Modal de Confirmación Institucional Compartido */}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={confirmModalVisible}
-                onRequestClose={() => setConfirmModalVisible(false)}
-            >
-                <View style={styles.customModalOverlay}>
-                    <View style={styles.customModalBox}>
-                        <Text style={styles.customModalTitle}>{confirmTitle}</Text>
-                        <Text style={styles.customModalSubtitle}>{confirmSubtitle}</Text>
-
-                        <View style={styles.customModalButtonRow}>
-                            <TouchableOpacity 
-                                style={styles.customCancelBtn} 
-                                onPress={() => setConfirmModalVisible(false)}
-                            >
-                                <Text style={styles.customCancelText}>Cancelar</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity 
-                                style={styles.customContinueBtn} 
-                                onPress={confirmAction}
-                            >
-                                <Text style={styles.customContinueText}>Continuar</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
-            {/* 🌟 Modal Institucional de Cierre de Sesión */}
-            <Modal
-                animationType="fade"
-                transparent={true}
-                visible={logoutModalVisible}
-                onRequestClose={() => setLogoutModalVisible(false)}
-            >
-                <View style={styles.customModalOverlay}>
-                    <View style={styles.customModalBox}>
-                        <Text style={styles.customModalTitle}>¿Desea cerrar sesión?</Text>
-                        <Text style={styles.customModalSubtitle}>Deberá iniciar sesión nuevamente para ingresar al sistema.</Text>
-
-                        <View style={styles.customModalButtonRow}>
-                            <TouchableOpacity 
-                                style={styles.customCancelBtn} 
-                                onPress={() => setLogoutModalVisible(false)}
-                            >
-                                <Text style={styles.customCancelText}>Cancelar</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity 
-                                style={styles.customContinueBtn} 
-                                onPress={confirmLogOut}
-                            >
-                                <Text style={styles.customContinueText}>Continuar</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
 
             <MenuModal
                 visible={menuVisible}
                 onClose={() => setMenuVisible(false)}
-                onLogout={handleLogOut}
+                onLogout={() => navigation.replace('Login')}
                 navigation={navigation} 
             />
         </View>
@@ -366,46 +259,39 @@ const styles = StyleSheet.create({
 container: {
     flex: 1,
     backgroundColor: '#FBEBD7', 
-},
-backgroundImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: width,
-    height: height,
-},
-navbar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingTop: 40,
-    paddingBottom: 0,
-    backgroundColor: 'transparent',
-},
-menuButton: {
-    padding: 6,
-},
-contentWrapper: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 25,
+    paddingHorizontal: 20, 
+    paddingTop: 35, 
+    paddingBottom: 25 
 },
 header: { 
     alignItems: 'flex-start', 
     marginBottom: 16, 
+    width: '100%' 
+},
+topRowLeft: { 
+    flexDirection: 'row', 
     width: '100%', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginBottom: 4 
+},
+logo: { 
+    width: 130, 
+    height: 130, 
+    resizeMode: 'contain'
+},
+menuButton: { 
+    padding: 8 
 },
 title: { 
-    fontSize: 24,
+    fontSize: 22,
     color: '#6D512A', 
-    fontFamily: 'PlayfairDisplay_700Bold', 
+    fontWeight: 'bold', 
     marginBottom: 2
 },
 subtitle: { 
     color: '#7C6860',
-    fontSize: 13,
-    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 13 
 },
 searchContainer: { 
     flexDirection: 'row', 
@@ -521,74 +407,5 @@ actionTextEliminar: {
     fontSize: 13, 
     color: '#D32F2F', 
     fontWeight: '600' 
-},
-
-// Estilos del Modal de Confirmación Institucional
-customModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-},
-customModalBox: {
-    backgroundColor: '#F2E3C8', // Color institucional unificado
-    borderRadius: 24,
-    padding: 24,
-    width: '90%',
-    maxWidth: 360,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
-},
-customModalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#4A3B32',
-    textAlign: 'center',
-    marginBottom: 12,
-    lineHeight: 26,
-},
-customModalSubtitle: {
-    fontSize: 14,
-    color: '#7C6860',
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 20,
-},
-customModalButtonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    gap: 12,
-},
-customCancelBtn: {
-    flex: 1,
-    backgroundColor: '#7A6B62',
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-},
-customCancelText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: 'bold',
-},
-customContinueBtn: {
-    flex: 1,
-    backgroundColor: '#D49B37',
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-},
-customContinueText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: 'bold',
 },
 });
