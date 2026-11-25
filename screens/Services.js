@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Modal, ImageBackground, Dimensions, Alert } from 'react-native';
 import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 // Firebase Firestore
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp } from 'firebase/firestore';
-import { signOut } from 'firebase/auth';
 import { db, auth } from '../src/config/firebaseConfig';
 // Componentes
-import MenuModal from '../components/MenuModal';
 import ServiceFormModal from '../components/ServiceFormModal';
 
 const { height, width } = Dimensions.get('window');
@@ -15,7 +12,6 @@ const { height, width } = Dimensions.get('window');
 export default function Services({ navigation }) {
     const [services, setServices] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [menuVisible, setMenuVisible] = useState(false);
 
     // Estados de modales y edición
     const [registerModalVisible, setRegisterModalVisible] = useState(false);
@@ -174,19 +170,14 @@ export default function Services({ navigation }) {
 
     return (
         <View style={styles.container}>
-            
-            <ImageBackground 
+
+            <ImageBackground
                 source={require('../assets/fonoperfil.jpeg')} 
                 style={styles.backgroundImage}
                 resizeMode="cover"
             >
-                {/* Navbar con el botón de menú a la DERECHA y sin logo */}
-                <View style={styles.navbar}>
-                    <View style={{ flex: 1 }} />
-                    <TouchableOpacity style={styles.menuButton} onPress={() => setMenuVisible(true)}>
-                        <MaterialCommunityIcons name="menu-open" size={36} color="#6D512A" />
-                    </TouchableOpacity>
-                </View>
+                {/* Espacio superior */}
+                <View style={styles.navbar} />
 
                 <View style={styles.contentWrapper}>
                     <View style={styles.header}>
@@ -306,12 +297,6 @@ export default function Services({ navigation }) {
                 </View>
             </Modal>
 
-            <MenuModal
-                visible={menuVisible}
-                onClose={() => setMenuVisible(false)}
-                onLogout={() => signOut(auth).catch(() => Alert.alert('Error', 'No se pudo cerrar la sesión.'))}
-                navigation={navigation} 
-            />
         </View>
     );
 }
@@ -336,14 +321,11 @@ navbar: {
     paddingBottom: 0,
     backgroundColor: 'transparent',
 },
-menuButton: {
-    padding: 6,
-},
 contentWrapper: {
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 25,
+    paddingBottom: 100,
 },
 header: { 
     alignItems: 'flex-start', 

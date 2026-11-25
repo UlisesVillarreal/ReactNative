@@ -1,23 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { ActivityIndicator, ScrollView, View, Text, TouchableOpacity, StyleSheet, Modal, ImageBackground, Dimensions} from 'react-native';
-import { signOut } from 'firebase/auth';
+import { ActivityIndicator, ScrollView, View, Text, StyleSheet, ImageBackground, Dimensions} from 'react-native';
 import { auth, db } from '../src/config/firebaseConfig';
 import { doc, onSnapshot } from 'firebase/firestore';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, PlayfairDisplay_400Regular, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import PersonalInfoCard from '../components/PersonalInfoCard';
-import MenuModal from '../components/MenuModal';
 
 const { height, width } = Dimensions.get('window');
 
 export default function Home({ navigation }) {
-  const [menuVisible, setMenuVisible] = useState(false);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // Estados para el Modal Institucional de Cierre de Sesión
-  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -56,19 +49,6 @@ export default function Home({ navigation }) {
     );
   }
   
-  const handleLogOut = () => {
-    setLogoutModalVisible(true);
-  };
-
-  const confirmLogOut = async () => {
-    setLogoutModalVisible(false);
-    try {
-      await signOut(auth);  
-    } catch (error) {
-      console.error("Error al cerrar sesión:", error);
-    }
-  };
-
   return (
     <View style={styles.container}>
       {/* Imagen de fondo abarcando toda la pantalla */}
@@ -77,13 +57,8 @@ export default function Home({ navigation }) {
         style={styles.backgroundImage}
         resizeMode="cover"
       >
-        {/* Navbar con el botón de menú a la DERECHA */}
-        <View style={styles.navbar}>
-          <View style={{ flex: 1 }} />
-          <TouchableOpacity style={styles.menuButton} onPress={() => setMenuVisible(true)}>
-            <MaterialCommunityIcons name="menu-open" size={36} color="#6D512A" />
-          </TouchableOpacity>
-        </View>
+        {/* Espacio superior */}
+        <View style={styles.navbar} />
 
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
@@ -118,44 +93,6 @@ export default function Home({ navigation }) {
         </ScrollView>
       </ImageBackground>
 
-      {/* Modal Institucional de Cierre de Sesión */}
-      <Modal
-          animationType="fade"
-          transparent={true}
-          visible={logoutModalVisible}
-          onRequestClose={() => setLogoutModalVisible(false)}
-      >
-          <View style={styles.customModalOverlay}>
-              <View style={styles.customModalBox}>
-                  <Text style={styles.customModalTitle}>¿Desea cerrar sesión?</Text>
-                  <Text style={styles.customModalSubtitle}>Deberá iniciar sesión nuevamente para ingresar al sistema.</Text>
-
-                  <View style={styles.customModalButtonRow}>
-                      <TouchableOpacity 
-                          style={styles.customCancelBtn} 
-                          onPress={() => setLogoutModalVisible(false)}
-                      >
-                          <Text style={styles.customCancelText}>Cancelar</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity 
-                          style={styles.customContinueBtn} 
-                          onPress={confirmLogOut}
-                      >
-                          <Text style={styles.customContinueText}>Continuar</Text>
-                      </TouchableOpacity>
-                  </View>
-              </View>
-          </View>
-      </Modal>
-
-      <MenuModal
-        visible={menuVisible}
-        onClose={() => setMenuVisible(false)} 
-        onLogout={handleLogOut}
-        navigation={navigation}
-      />
-
     </View>
   );
 }
@@ -184,9 +121,6 @@ const styles = StyleSheet.create({
     paddingBottom: 5,
     backgroundColor: 'transparent',
   },
-  menuButton: {
-    padding: 6,
-  },
   tittle:{
     fontSize: 30,
     fontFamily: 'PlayfairDisplay_700Bold',
@@ -208,7 +142,7 @@ const styles = StyleSheet.create({
   },
   scrollContent:{
     padding: 20,
-    paddingBottom: 50,
+    paddingBottom: 120,
     backgroundColor: 'transparent',
   },
   
@@ -236,74 +170,5 @@ const styles = StyleSheet.create({
     fontSize: 21,
     fontFamily: 'PlayfairDisplay_700Bold',
     color:'#6D512A',
-  },
-
-  // Estilos del Modal Institucional
-  customModalOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(50, 35, 20, 0.75)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 20,
-  },
-  customModalBox: {
-      backgroundColor: '#F2E3C8',
-      borderRadius: 24,
-      padding: 24,
-      width: '90%',
-      maxWidth: 360,
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.3,
-      shadowRadius: 10,
-      elevation: 10,
-  },
-  customModalTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: '#4A3B32',
-      textAlign: 'center',
-      marginBottom: 12,
-      lineHeight: 26,
-  },
-  customModalSubtitle: {
-      fontSize: 14,
-      color: '#7C6860',
-      textAlign: 'center',
-      marginBottom: 24,
-      lineHeight: 20,
-  },
-  customModalButtonRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      width: '100%',
-      gap: 12,
-  },
-  customCancelBtn: {
-      flex: 1,
-      backgroundColor: '#7A6B62',
-      paddingVertical: 14,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-  },
-  customCancelText: {
-      color: '#FFFFFF',
-      fontSize: 15,
-      fontWeight: 'bold',
-  },
-  customContinueBtn: {
-      flex: 1,
-      backgroundColor: '#D49B37',
-      paddingVertical: 14,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-  },
-  customContinueText: {
-      color: '#FFFFFF',
-      fontSize: 15,
-      fontWeight: 'bold',
   },
 });
