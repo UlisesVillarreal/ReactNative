@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Modal, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform, ImageBackground } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5'; 
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail, sendEmailVerification, signOut } from 'firebase/auth';
 import { auth } from '../src/config/firebaseConfig';
 
 export default function Login({ navigation }) {
@@ -15,6 +15,9 @@ export default function Login({ navigation }) {
   const [passwordError, setPasswordError] = useState('');
   const [generalError, setGeneralError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Cuenta existente pero con el correo sin confirmar
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
   // Estados para Modal de Recuperación
   const [modalVisible, setModalVisible] = useState(false);
@@ -69,6 +72,7 @@ export default function Login({ navigation }) {
 
   const handleLogin = async () => {
     setGeneralError('');
+    setNeedsVerification(false);
     
     const cleanEmail = email.trim();
     const isEmailValid = validateEmail(cleanEmail);
@@ -79,7 +83,14 @@ export default function Login({ navigation }) {
     setLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, cleanEmail, password);
+      const credential = await signInWithEmailAndPassword(auth, cleanEmail, password);
+
+      // Sin correo confirmado no se permite el ingreso
+      if (!credential.user.emailVerified) {
+        await signOut(auth);
+        setNeedsVerification(true);
+        setGeneralError('Debe confirmar su correo electrónico antes de ingresar. Revise su bandeja de entrada (y la carpeta de spam).');
+      }
     } catch (error) {
       if (
         error.code === 'auth/invalid-credential' ||
@@ -97,6 +108,31 @@ export default function Login({ navigation }) {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Reenvía el correo de confirmación (requiere iniciar sesión un instante con las credenciales ingresadas)
+  const handleResendVerification = async () => {
+    if (resendLoading) return;
+    setResendLoading(true);
+    try {
+      const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
+      if (credential.user.emailVerified) {
+        // Ya estaba confirmado: dejamos la sesión abierta
+        return;
+      }
+      await sendEmailVerification(credential.user);
+      await signOut(auth);
+      setGeneralError('Le enviamos un nuevo correo de confirmación. Revise su bandeja de entrada.');
+    } catch (error) {
+      await signOut(auth).catch(() => {});
+      setGeneralError(
+        error.code === 'auth/too-many-requests'
+          ? 'Se realizaron demasiados intentos. Espere unos minutos antes de volver a intentarlo.'
+          : 'No pudimos reenviar el correo. Verifique sus datos e inténtelo nuevamente.'
+      );
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -198,6 +234,19 @@ export default function Login({ navigation }) {
           </TouchableOpacity>
 
           {generalError ? <Text style={styles.generalErrorText}>{generalError}</Text> : null}
+
+          {needsVerification && (
+            <TouchableOpacity
+              onPress={handleResendVerification}
+              disabled={resendLoading}
+              style={{ alignSelf: 'center', marginBottom: 12 }}
+              accessibilityRole="button"
+            >
+              {resendLoading
+                ? <ActivityIndicator color="#B88A3B" size="small" />
+                : <Text style={styles.forgotPasswordText}>Reenviar correo de confirmación</Text>}
+            </TouchableOpacity>
+          )}
 
           {/* Botón de Iniciar Sesión dinámico */}
           <TouchableOpacity 

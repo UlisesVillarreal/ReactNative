@@ -7,9 +7,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Tiene perfil de usuario creado (cuenta registrada en el sistema)
+    // Tiene perfil de usuario creado y el correo confirmado
     function hasProfile() {
       return signedIn()
+        && request.auth.token.email_verified == true
         && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
     }
 

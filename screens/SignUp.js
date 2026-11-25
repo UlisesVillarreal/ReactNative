@@ -3,7 +3,7 @@ import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert,
 import { FontAwesome } from '@expo/vector-icons';
 import { auth, db } from '../src/config/firebaseConfig';
 import { doc, setDoc } from 'firebase/firestore';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signOut } from 'firebase/auth';
 
 export default function SignUp({ navigation }) {
 
@@ -166,7 +166,24 @@ export default function SignUp({ navigation }) {
       // Nombre visible en Auth (no es crítico si falla)
       await updateProfile(user, { displayName: `${firstName.trim()} ${lastName.trim()}` }).catch(() => {});
 
-      Alert.alert("Registro exitoso", "Tu cuenta fue creada correctamente.");
+      // Enviamos el correo de confirmación y cerramos la sesión:
+      // hasta confirmar el correo no se puede ingresar al sistema.
+      let correoEnviado = true;
+      try {
+        await sendEmailVerification(user);
+      } catch (e) {
+        correoEnviado = false;
+      }
+      await signOut(auth);
+
+      Alert.alert(
+        "Registro exitoso",
+        correoEnviado
+          ? `Te enviamos un correo de confirmación a ${email.trim()}. Confirmalo para poder iniciar sesión.`
+          : "Tu cuenta fue creada, pero no pudimos enviar el correo de confirmación. Intentá iniciar sesión para reenviarlo.",
+        [{ text: "Aceptar", onPress: () => navigation.navigate('Login') }],
+        { onDismiss: () => navigation.navigate('Login') }
+      );
 
     } catch (error) {
       // Si la cuenta se creó pero el perfil no se pudo guardar, la revertimos

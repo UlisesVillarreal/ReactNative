@@ -53,7 +53,8 @@ export default function Navigation() {
 
   useEffect(() => {
     if (!auth) return;
-    return onAuthStateChanged(auth, setUser);
+    // Una cuenta con el correo sin confirmar se trata como sin sesión
+    return onAuthStateChanged(auth, (u) => setUser(u && u.emailVerified ? u : null));
   }, []);
 
   if (!isFirebaseConfigured) {
