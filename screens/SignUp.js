@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, KeyboardAvoidingView, Platform} from 'react-native';
+import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ImageBackground, KeyboardAvoidingView, Platform} from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { auth, db } from '../src/config/firebaseConfig';
 import { doc, setDoc } from 'firebase/firestore';
@@ -7,6 +7,11 @@ import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 
 export default function SignUp({ navigation }) {
 
+  //teclado para solo texto
+  const sololetras = (texto) =>
+    texto
+      .replace(/[^a-zA-ZñÑ\s]/g, '')
+      .replace(/\b\w/g, (letra) => letra.toUpperCase()); 
   // info personal
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -230,7 +235,8 @@ const handleSignUp = async () => {
                 style={styles.input}
                 placeholder="Ej: Mariano"
                 value={firstName}
-                onChangeText={setFirstName}
+                onChangeText={(texto) => setFirstName(sololetras(texto))} 
+                autoCapitalize="words"
               />
             </View>
             
@@ -249,7 +255,8 @@ const handleSignUp = async () => {
                 style={styles.input}
                 placeholder="Ej: Tamer"
                 value={lastName}
-                onChangeText={setLastName}
+                onChangeText={(texto) => setLastName(sololetras(texto))}
+                autoCapitalize="words"
               />
             </View>
             {errors.lastName && (
@@ -257,6 +264,7 @@ const handleSignUp = async () => {
                 {errors.lastName}
             </Text>
             )}
+            //DNI
             <Text style={styles.label}>DNI *</Text>
             <View style={styles.inputContainer}>
               <FontAwesome name="id-card" size={20} style={styles.icon} />
@@ -264,7 +272,7 @@ const handleSignUp = async () => {
                 style={styles.input}
                 placeholder="Solo el numero, sin '.'"
                 value={dni}
-                onChangeText={setDni}
+                onChangeText={(texto) => setDni(texto.replace(/\D/g, '').slice(0, 8))}
                 keyboardType="numeric"
               />
             </View>
@@ -277,13 +285,16 @@ const handleSignUp = async () => {
             {/* telefono */}
             <Text style={styles.label}>Teléfono</Text>
             <View style={styles.inputContainer}>
-              <FontAwesome name="phone" size={20} style={styles.icon} />
+              <Text style={styles.Flag}>🇦🇷</Text>
+              <Text style={styles.countryCode}>+54</Text>
+              <View style={styles.phoneSeparator} />
               <TextInput
                 style={styles.input}
                 placeholder="Sin '0' ni '15', ej: 3875666888"
                 value={tel}
-                onChangeText={setTel}
-                keyboardType="numeric"
+                onChangeText={(texto) => setTel(texto.replace(/\D/g, '').slice(0, 10))}
+                keyboardType="phone-pad"
+                maxLength={10}
               />
             </View>
             {errors.tel && <Text style={styles.errortext}>{errors.tel}</Text>}
@@ -296,9 +307,7 @@ const handleSignUp = async () => {
                 style={styles.input}
                 placeholder="usuario@gmail.com"
                 value={email}
-                
-                onChangeText={setEmail} 
-                
+                onChangeText={(texto) => setEmail(texto.replace(/[^a-zA-Z0-9.@_%+-]/g, ''))}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
@@ -353,24 +362,6 @@ const handleSignUp = async () => {
                 </View>
               ))}
             </View>
-
-            {/*Indicator de seguridad */}
-            {passwordStrength !== '' && (
-              <View style={styles.strengthContainer}>
-                <Text style={styles.strengthLabel}>
-                  Seguridad de la contraseña:
-                </Text>
-
-                <Text
-                  style={[
-                    styles.strengthText,
-                    { color: passwordStrengthColor }
-                ]}
-              >
-                {passwordStrength}
-              </Text>
-              </View>
-            )}
             
             <Text style={styles.label}>Confirmar Contraseña *</Text>
             <View style={styles.inputContainer}>
@@ -481,8 +472,12 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderColor: '#B88A3B',
+    borderWidth: 1,
+    borderColor: '#E8D2B8',
+    borderRadius: 10,
+    backgroundColor: '#FFFDFC',
+    paddingHorizontal: 12,
+    minHeight: 48,
     marginBottom: 15,
     width: '100%',
   },
@@ -493,7 +488,8 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    height: 40,
+    height: 46,
+    paddingVertical: 0,
   },
   button: {
     backgroundColor: '#D8B77A',
@@ -534,5 +530,21 @@ const styles = StyleSheet.create({
     width: '100%',
     marginTop: 5,
     marginBottom: 15,
+  },
+  countryFlag: {
+    fontSize: 22,
+    marginRight: 8,
+  },
+  countryCode: {
+    color: '#6D512A',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 12,
+  },
+  phoneSeparator: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#B88A3B',
+    marginRight: 12,
   },
 });
