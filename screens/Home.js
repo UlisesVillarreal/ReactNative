@@ -11,7 +11,7 @@ import { pickProfilePhoto } from '../src/utils/profilePhoto';
 
 const { height, width } = Dimensions.get('window');
 
-export default function Home({ navigation }) {
+export default function Home() {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [savingPhoto, setSavingPhoto] = useState(false);
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     borderRadius: 45,
   },
   fotoLoading:{
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 45,
     backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'center',

@@ -1,10 +1,10 @@
 # Login y SignUp — proyecto para alumnos
 
-Proyecto Expo en JavaScript para practicar registro, inicio y cierre de sesión con Firebase Authentication. Las credenciales están vacías para que cada alumno conecte su propio proyecto Firebase.
+Proyecto Expo en JavaScript con registro (con confirmación de correo), inicio y cierre de sesión, recuperación de contraseña, perfil editable con foto y registro de servicios, usando Firebase Authentication y Firestore. Las credenciales están vacías para que cada alumno conecte su propio proyecto Firebase.
 
 ## Requisitos
 
-- Node.js 22 LTS. Expo SDK 57 requiere Node.js 22.13 o posterior.
+- Node.js 22 LTS. Expo SDK 58 requiere Node.js 22.13 o posterior.
 - npm, incluido con Node.js.
 - Expo Go actualizado en el teléfono.
 - Una cuenta de Firebase.
@@ -37,6 +37,8 @@ Si `npm ci` indica que faltan archivos o que el lockfile no coincide, usar `npm 
 4. Registrar la aplicación y conservar el objeto `firebaseConfig`.
 5. Entrar en **Authentication > Método de acceso**.
 6. Agregar y habilitar **Correo electrónico/contraseña**.
+7. Entrar en **Firestore Database** y crear la base de datos (modo producción).
+8. Abrir la pestaña **Reglas**, pegar el contenido del archivo `firestore.rules` de este proyecto y pulsar **Publicar**. Sin este paso la aplicación no puede leer ni guardar datos.
 
 ## 3. Agregar la configuración Firebase
 
@@ -83,16 +85,20 @@ Para detener el servidor, presionar `Ctrl+C`.
 
 ## 5. Prueba funcional
 
-1. Registrar un usuario con nombre, apellido, correo y contraseña.
-2. La contraseña debe tener al menos seis caracteres, una mayúscula, una minúscula y un número; por ejemplo, `Prueba123`.
-3. Confirmar que aparece **Inicio**.
-4. Comprobar el usuario en **Firebase > Authentication > Usuarios**.
-5. Cerrar sesión e iniciar sesión con la misma cuenta.
-6. Cerrar y volver a abrir Expo Go para comprobar que la sesión se conserva.
+1. Registrar un usuario con nombre, apellido, DNI, correo y contraseña.
+2. La contraseña debe tener al menos ocho caracteres, una mayúscula, una minúscula, un número y un carácter especial; por ejemplo, `Prueba123!`.
+3. Abrir el correo de confirmación que envía Firebase (revisar también la carpeta de spam) y pulsar el enlace.
+4. Iniciar sesión. Sin confirmar el correo, la aplicación no permite ingresar y ofrece reenviar el mensaje.
+5. Confirmar que aparece **Mi Perfil**. Desde allí se puede cambiar la foto, editar cada dato con el lápiz y cambiar la contraseña.
+6. Entrar a **Servicios** desde la barra inferior y registrar, editar y eliminar un servicio.
+7. Cerrar sesión desde la barra inferior e iniciar sesión nuevamente.
+8. Cerrar y volver a abrir Expo Go para comprobar que la sesión se conserva.
 
 ## Soluciones rápidas
 
 - **Falta configurar Firebase:** revisar que exista `.env` y que sus seis valores estén completos.
+- **Permisos insuficientes:** publicar las reglas de `firestore.rules` en la consola de Firebase (paso 2.8).
+- **No llega el correo de confirmación:** revisar spam y, en el Login, usar **Reenviar correo de confirmación**.
 - **Clave API no válida:** copiar `apiKey` otra vez y respetar mayúsculas y minúsculas.
 - **El QR no conecta:** ejecutar `npm run start:tunnel`.
 - **Error de caché o cambios que no aparecen:** ejecutar `npx expo start -c`.
@@ -110,14 +116,26 @@ docker compose up --build
 
 ```text
 login-signup-alumnos/
-├── assets/logo.png
+├── assets/                  imágenes y fondos
+├── components/
+│   ├── BottomBar.js         barra inferior (Perfil, Servicios, Cerrar sesión)
+│   ├── ChangePasswordModal.js
+│   ├── EditFieldModal.js
+│   ├── PersonalInfoCard.js
+│   └── ServiceFormModal.js
 ├── docs/
 ├── navigation/Navigation.js
 ├── screens/
-│   ├── Home.js
+│   ├── Home.js              perfil
 │   ├── Login.js
+│   ├── Services.js          servicios realizados
 │   └── SignUp.js
-├── src/config/firebaseConfig.js
+├── src/
+│   ├── config/firebaseConfig.js
+│   └── utils/
+│       ├── profilePhoto.js  selección y reducción de la foto de perfil
+│       └── validators.js    validaciones compartidas
+├── firestore.rules          reglas de seguridad de Firestore
 ├── .env.example
 ├── App.js
 ├── package-lock.json

@@ -9,7 +9,7 @@ import ServiceFormModal from '../components/ServiceFormModal';
 
 const { height, width } = Dimensions.get('window');
 
-export default function Services({ navigation }) {
+export default function Services() {
     const [services, setServices] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
 

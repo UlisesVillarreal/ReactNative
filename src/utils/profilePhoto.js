@@ -1,8 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
-// Tamaño final del avatar (en píxeles). Chico a propósito: la imagen se guarda
-// dentro del documento de Firestore, que tiene un límite de 1 MB.
 const AVATAR_SIZE = 256;
 const AVATAR_QUALITY = 0.6;
 

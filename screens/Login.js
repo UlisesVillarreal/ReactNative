@@ -147,7 +147,7 @@ export default function Login({ navigation }) {
     try {
       await sendPasswordResetEmail(auth, cleanResetEmail);
     } catch (error) {
-      console.log("Error recupero:", error.code);
+      // No se informa el error a propósito: así no se revela si el correo existe.
     } finally {
       setResetLoading(false);
       setModalVisible(false);
