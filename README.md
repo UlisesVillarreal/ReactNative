@@ -2,6 +2,16 @@
 
 Proyecto Expo en JavaScript con registro (con confirmación de correo), inicio y cierre de sesión, recuperación de contraseña, perfil editable con foto y registro de servicios, usando Firebase Authentication y Firestore. Las credenciales están vacías para que cada alumno conecte su propio proyecto Firebase.
 
+## Funcionalidades
+
+- **Registro** con nombre, apellido, DNI, teléfono (opcional), correo y contraseña segura. La cuenta debe confirmarse desde el correo antes de poder ingresar.
+- **Inicio de sesión** con opción de reenviar el correo de confirmación y de recuperar la contraseña.
+- **Mi Perfil:** foto de perfil (galería o cámara), edición de nombre, apellido, DNI y teléfono con confirmación previa, y cambio de contraseña (pide la actual).
+- **Servicios realizados:** alta, consulta, edición y baja de registros, con buscador por empleado o servicio.
+- **Barra inferior** fija con Perfil, Servicios y Cerrar sesión.
+
+Las validaciones de los datos (nombre, DNI, teléfono, contraseña) están en `src/utils/validators.js` y se comparten entre el registro y la edición del perfil.
+
 ## Requisitos
 
 - Node.js 22 LTS. Expo SDK 58 requiere Node.js 22.13 o posterior.
@@ -112,6 +122,24 @@ Los archivos `Dockerfile` y `compose.yaml` permiten ejecutar el mismo proyecto c
 docker compose up --build
 ```
 
+## Modelo de datos (Firestore)
+
+**`usuarios/{uid}`** — un documento por cuenta, con el uid de Firebase Authentication como identificador:
+
+| Campo | Descripción |
+|---|---|
+| `nombre`, `apellido` | Texto. Editables. |
+| `dni` | Texto de 7 u 8 dígitos. Editable. |
+| `telefono` | Texto de 10 dígitos o vacío. Editable. |
+| `correo` | Correo de la cuenta. No editable. |
+| `rol` | Siempre `empleado` al registrarse. No editable. |
+| `fechaRegistro` | Fecha de alta en formato ISO. |
+| `foto` | Opcional. Imagen de perfil reducida a 256 px y guardada como texto (base64), por lo que no requiere Firebase Storage. |
+
+**`servicios/{id}`** — un documento por servicio realizado: `empleado`, `servicio`, `monto` (texto con formato), `montoNumero`, `fecha`, `hora`, `creadoEn` y `creadoPor`.
+
+Las reglas de `firestore.rules` aplican estas restricciones en el servidor: cada usuario solo lee y edita su propio perfil, no puede cambiar su rol ni su correo, y solo las cuentas con el correo confirmado acceden a `servicios`.
+
 ## Estructura principal
 
 ```text
@@ -143,3 +171,10 @@ login-signup-alumnos/
 ```
 
 Si falta `.env` o algún valor, la aplicación muestra un aviso en lugar de iniciar Firebase con una configuración incompleta.
+
+## Notas
+
+- Es un proyecto de práctica. En `servicios`, cualquier usuario con el correo confirmado puede leer, editar y eliminar cualquier registro. Para un uso real habría que restringirlo por rol o por autor en `firestore.rules`.
+- Las cuentas creadas antes de activar la confirmación de correo quedan bloqueadas hasta confirmar. Se resuelve iniciando sesión (la aplicación reenvía el correo) o registrando la cuenta de nuevo.
+- Las claves de Firebase para web no son secretas, pero conviene restringir la API key en Google Cloud (**APIs y servicios > Credenciales**).
+- Los PDF de `docs/` corresponden a la versión inicial del proyecto y no incluyen las funciones descritas arriba.
