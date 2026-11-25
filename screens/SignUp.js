@@ -3,15 +3,11 @@ import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert,
 import { FontAwesome } from '@expo/vector-icons';
 import { auth, db } from '../src/config/firebaseConfig';
 import { doc, setDoc } from 'firebase/firestore';
+import { sololetras, getPasswordRequirements, NAME_REGEX, EMAIL_REGEX, DNI_REGEX, TEL_REGEX } from '../src/utils/validators';
 import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signOut } from 'firebase/auth';
 
 export default function SignUp({ navigation }) {
 
-  //teclado para solo texto
-  const sololetras = (texto) =>
-    texto
-      .replace(/[^a-zA-ZñÑáéíóúüÁÉÍÓÚÜ\s]/g, '')
-      .replace(/(^|\s)(\S)/g, (_, espacio, letra) => espacio + letra.toUpperCase());
   // info personal
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -30,28 +26,7 @@ export default function SignUp({ navigation }) {
   const [isFormValid, setIsFormValid] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const passwordRequirements = [
-    {
-      label: 'Al menos 8 caracteres',
-      met: password.length >= 8,
-    },
-    {
-      label: 'Una letra mayúscula',
-      met: /[A-Z]/.test(password),
-    },
-    {
-      label: 'Una letra minúscula',
-      met: /[a-z]/.test(password),
-    },
-    {
-      label: 'Un número',
-      met: /[0-9]/.test(password),
-    },
-    {
-      label: 'Un carácter especial (@, #, !)',
-      met: /[!@#$%^&*(),.?":{}|<>\-_=+[\];/\\~]/.test(password),
-    },
-  ];
+  const passwordRequirements = getPasswordRequirements(password);
 
   // Fuerza derivada de los requisitos (sin estado extra, siempre actualizada)
   const requirementsMet = passwordRequirements.filter((r) => r.met).length;
@@ -63,14 +38,10 @@ export default function SignUp({ navigation }) {
     let formIsValid = true;
 
     // Regex
-    const nameRegex = /^[a-zA-Z\sñÑ\u00C0-\u017F]+$/;
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    const dniRegex = /^\d{7,8}$/;
-    const telRegex = /^\d{10}$/;
 
     // Nombre
     if (firstName.trim().length > 0) {
-      if (!nameRegex.test(firstName.trim())) {
+      if (!NAME_REGEX.test(firstName.trim())) {
         newErrors.firstName = 'Solo se permiten letras.';
         formIsValid = false;
       }
@@ -80,7 +51,7 @@ export default function SignUp({ navigation }) {
 
     // Apellido
     if (lastName.trim().length > 0) {
-      if (!nameRegex.test(lastName.trim())) {
+      if (!NAME_REGEX.test(lastName.trim())) {
         newErrors.lastName = 'Solo se permiten letras.';
         formIsValid = false;
       }
@@ -90,7 +61,7 @@ export default function SignUp({ navigation }) {
 
     // DNI
     if (dni.trim().length > 0) {
-      if (!dniRegex.test(dni.trim())) {
+      if (!DNI_REGEX.test(dni.trim())) {
         newErrors.dni = 'Debe tener entre 7 y 8 dígitos, solo números.';
         formIsValid = false;
       }
@@ -100,7 +71,7 @@ export default function SignUp({ navigation }) {
 
     // Correo
     if (email.trim().length > 0) {
-      if (!emailRegex.test(email.trim())) {
+      if (!EMAIL_REGEX.test(email.trim())) {
         newErrors.email = 'Formato inválido. Ej: usuario@gmail.com';
         formIsValid = false;
       }
@@ -109,7 +80,7 @@ export default function SignUp({ navigation }) {
     }
 
     // Teléfono (No es obligatorio pero si debe tener el formato correcto)
-    if (tel.trim().length > 0 && !telRegex.test(tel.trim())) {
+    if (tel.trim().length > 0 && !TEL_REGEX.test(tel.trim())) {
       newErrors.tel = 'El teléfono solo debe tener 10 números, sin otros caracteres.';
       formIsValid = false;
     }

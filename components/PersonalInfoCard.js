@@ -1,8 +1,41 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
-export default function PersonalInfoCard({ nombre, dni, correo, telefono, fechaIngreso }) {
+// Una fila de la tarjeta: etiqueta + valor. Si recibe onEdit, muestra el lápiz para editarla.
+function InfoField({ label, icon, value, onEdit, locked, style }) {
+    return (
+        <View style={[styles.inputGroup, style]}>
+            <Text style={styles.label}>{label}</Text>
+            <View style={styles.valueContainer}>
+                <MaterialCommunityIcons name={icon} size={18} color="#B88A3B" style={styles.inputIcon} />
+                <Text style={styles.valueText} numberOfLines={1}>{value}</Text>
+
+                {onEdit && (
+                    <TouchableOpacity
+                        onPress={onEdit}
+                        style={styles.editButton}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Editar ${label}`}
+                    >
+                        <MaterialCommunityIcons name="pencil-outline" size={18} color="#B88A3B" />
+                    </TouchableOpacity>
+                )}
+
+                {locked && (
+                    <MaterialCommunityIcons name="lock-outline" size={16} color="#B0A090" />
+                )}
+            </View>
+        </View>
+    );
+}
+
+// onEdit(campo) se llama al tocar el lápiz de un campo ('nombre' | 'apellido' | 'dni' | 'telefono').
+// Si no se pasa (por ejemplo mientras carga el perfil), no se muestran los lápices.
+export default function PersonalInfoCard({ nombre, apellido, dni, correo, telefono, fechaIngreso, onEdit }) {
+    const edit = (campo) => (onEdit ? () => onEdit(campo) : undefined);
+
     return (
         <View style={styles.card}>
             <View style={styles.cardHeader}>
@@ -10,48 +43,16 @@ export default function PersonalInfoCard({ nombre, dni, correo, telefono, fechaI
                 <Text style={styles.cardTittle}>Información Personal</Text>
             </View>
 
-            <View style={styles.inputGroup}>
-                <Text style={styles.label}>Nombre completo</Text>
-                <View style={styles.valueContainer}>
-                    <MaterialCommunityIcons name="account-circle-outline" size={18} color="#B88A3B" style={styles.inputIcon} />
-                    <Text style={styles.valueText}>{nombre}</Text> 
-                </View>
-            </View>
+            <InfoField label="Nombre" icon="account-circle-outline" value={nombre} onEdit={edit('nombre')} />
+            <InfoField label="Apellido" icon="account-circle-outline" value={apellido} onEdit={edit('apellido')} />
+            <InfoField label="DNI" icon="card-account-details-outline" value={dni} onEdit={edit('dni')} />
 
-            <View style={styles.inputGroup}>
-                <Text style={styles.label}>DNI</Text>
-                <View style={styles.valueContainer}>
-                    <MaterialCommunityIcons name="card-account-details-outline" size={18} color="#B88A3B" style={styles.inputIcon} />
-                    <Text style={styles.valueText}>{dni}</Text>
-                </View>
-            </View>
+            {/* El correo es la cuenta de acceso: no se edita desde acá */}
+            <InfoField label="Correo" icon="email-outline" value={correo} locked={!!onEdit} />
 
-            <View style={styles.inputGroup}>
-                <Text style={styles.label}>Correo</Text>
-                <View style={styles.valueContainer}>
-                    <MaterialCommunityIcons name="email-outline" size={18} color="#B88A3B" style={styles.inputIcon} />
-                    <Text style={styles.valueText}>{correo}</Text>
-                </View>
-            </View>
-            
-            <View style={styles.row}>
-                <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                    <Text style={styles.label}>Teléfono</Text>
-                    <View style={styles.valueContainer}>
-                        <MaterialCommunityIcons name="phone-outline" size={18} color="#B88A3B" style={styles.inputIcon} />
-                        <Text style={styles.valueText}>{telefono}</Text>
-                    </View>
-                </View>
+            <InfoField label="Teléfono" icon="phone-outline" value={telefono} onEdit={edit('telefono')} />
 
-                <View style={[styles.inputGroup, { flex: 1 }]}>
-                    <Text style={styles.label}>Fecha de ingreso</Text>
-                    <View style={styles.valueContainer}>
-                        <MaterialCommunityIcons name="calendar-blank-outline" size={18} color="#B88A3B" style={styles.inputIcon} />
-                        <Text style={styles.valueText}>{fechaIngreso}</Text>
-                    </View>
-                </View>
-            </View>
-
+            <InfoField label="Fecha de ingreso" icon="calendar-blank-outline" value={fechaIngreso} locked={!!onEdit} />
         </View>
     );
 }
@@ -66,7 +67,7 @@ const styles = StyleSheet.create({
         shadowColor:'#6d512a',
         elevation: 5,
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15, 
+        shadowOpacity: 0.15,
         shadowRadius: 10,
         borderWidth: 1,
         borderColor: '#E5D3B3',
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
     },
     cardTittle:{
         fontSize: 18,
-        fontFamily: 'PlayfairDisplay_700Bold', 
+        fontFamily: 'PlayfairDisplay_700Bold',
         color: '#6D512A',
         marginLeft: 10,
     },
@@ -110,8 +111,8 @@ const styles = StyleSheet.create({
         color:'#332211',
         flex: 1,
     },
-    row:{
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+    editButton: {
+        marginLeft: 8,
+        padding: 2,
     },
 });

@@ -5,6 +5,8 @@ import { doc, onSnapshot, updateDoc, deleteField } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, PlayfairDisplay_400Regular, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import PersonalInfoCard from '../components/PersonalInfoCard';
+import EditFieldModal from '../components/EditFieldModal';
+import ChangePasswordModal from '../components/ChangePasswordModal';
 import { pickProfilePhoto } from '../src/utils/profilePhoto';
 
 const { height, width } = Dimensions.get('window');
@@ -13,6 +15,9 @@ export default function Home({ navigation }) {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [savingPhoto, setSavingPhoto] = useState(false);
+  // Campo del perfil que se está editando ('nombre' | 'apellido' | 'dni' | 'telefono' | null)
+  const [editingField, setEditingField] = useState(null);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -81,6 +86,11 @@ export default function Home({ navigation }) {
     }
   };
 
+  // Guarda un campo editado. Si falla, lanza el error para que el modal lo muestre.
+  const saveField = async (field, value) => {
+    await updateDoc(doc(db, 'usuarios', auth.currentUser.uid), { [field]: value });
+  };
+
   // Menú de opciones al tocar el avatar
   const openPhotoOptions = () => {
     if (savingPhoto) return;
@@ -145,20 +155,49 @@ export default function Home({ navigation }) {
             </Text>
           </View>
 
-          <PersonalInfoCard 
-            nombre={userData ? `${userData.nombre} ${userData.apellido}` : 'Cargando...'}
+          <PersonalInfoCard
+            nombre={userData ? userData.nombre : 'Cargando...'}
+            apellido={userData ? userData.apellido : 'Cargando...'}
             dni={userData ? userData.dni : 'Cargando...'}
             correo={userData ? userData.correo : 'Cargando...'}
-            telefono={userData ? userData.telefono : 'Cargando...'}
+            telefono={userData ? (userData.telefono || 'No cargado') : 'Cargando...'}
             fechaIngreso={
               userData && userData.fechaRegistro 
                 ? new Date(userData.fechaRegistro).toLocaleDateString('es-AR') 
                 : 'Cargando...'
-            } 
+            }
+            onEdit={userData ? setEditingField : undefined}
           />
+
+          {/* Cambio de contraseña */}
+          <TouchableOpacity
+            style={styles.passwordButton}
+            onPress={() => setPasswordModalVisible(true)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+          >
+            <Ionicons name="key-outline" size={18} color="#FBF1F0" />
+            <Text style={styles.passwordButtonText}>Editar contraseña</Text>
+          </TouchableOpacity>
 
         </ScrollView>
       </ImageBackground>
+
+
+      {/* Modal para editar un campo del perfil */}
+      <EditFieldModal
+        visible={editingField !== null}
+        field={editingField}
+        currentValue={editingField && userData ? userData[editingField] : ''}
+        onClose={() => setEditingField(null)}
+        onConfirm={(value) => saveField(editingField, value)}
+      />
+
+      {/* Modal para cambiar la contraseña */}
+      <ChangePasswordModal
+        visible={passwordModalVisible}
+        onClose={() => setPasswordModalVisible(false)}
+      />
 
     </View>
   );
@@ -257,6 +296,21 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  passwordButton:{
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#B88A3B',
+    borderRadius: 14,
+    paddingVertical: 13,
+    marginTop: 18,
+  },
+  passwordButtonText:{
+    color: '#FBF1F0',
+    fontWeight: 'bold',
+    fontSize: 15,
   },
   nombrePerfil:{
     fontSize: 21,
