@@ -1,46 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { ActivityIndicator, ScrollView, View, Text, TouchableOpacity, StyleSheet, Modal, ImageBackground, Dimensions} from 'react-native';
-import { signOut } from 'firebase/auth';
+import { ActivityIndicator, ScrollView, View, Text, StyleSheet, ImageBackground, Dimensions, TouchableOpacity, Image, Alert } from 'react-native';
 import { auth, db } from '../src/config/firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { doc, onSnapshot, updateDoc, deleteField } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, PlayfairDisplay_400Regular, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import PersonalInfoCard from '../components/PersonalInfoCard';
-import MenuModal from '../components/MenuModal';
+import EditFieldModal from '../components/EditFieldModal';
+import ChangePasswordModal from '../components/ChangePasswordModal';
+import { pickProfilePhoto } from '../src/utils/profilePhoto';
 
 const { height, width } = Dimensions.get('window');
 
-export default function Home({ navigation }) {
-  const [menuVisible, setMenuVisible] = useState(false);
+export default function Home() {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  // Estados para el Modal Institucional de Cierre de Sesión
-  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const [savingPhoto, setSavingPhoto] = useState(false);
+  // Campo del perfil que se está editando ('nombre' | 'apellido' | 'dni' | 'telefono' | null)
+  const [editingField, setEditingField] = useState(null);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const currentUser = auth.currentUser;
-        if (currentUser) {
-          const userDocRef = doc(db, 'usuarios', currentUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
 
-          if (userDocSnap.exists()) {
-            setUserData(userDocSnap.data());
-          } else {
-            console.log("No se encontró el perfil en la base de datos.");
-          }
-        }
-      } catch (error) {
-        console.error("Error al obtener los datos del usuario:", error);
-      } finally {
+    // Escucha en tiempo real: si el perfil se crea unos instantes después
+    // del registro, la pantalla se actualiza sola.
+    const unsubscribe = onSnapshot(
+      doc(db, 'usuarios', currentUser.uid),
+      (snap) => {
+        setUserData(snap.exists() ? snap.data() : null);
         setLoading(false);
-      }
-    };
+      },
+      () => setLoading(false)
+    );
 
-    fetchUserData();
+    return () => unsubscribe();
   }, []);
 
   let [fontsLoaded] = useFonts({
@@ -59,17 +56,53 @@ export default function Home({ navigation }) {
     );
   }
   
-  const handleLogOut = () => {
-    setLogoutModalVisible(true);
+  // --- Foto de perfil ---
+  // Flujo: elegir foto -> reducirla (utils/profilePhoto) -> guardarla en el
+  // documento del usuario en Firestore. El onSnapshot de arriba actualiza la
+  // pantalla solo cuando el guardado termina.
+  const changePhoto = async (source) => {
+    try {
+      const dataUri = await pickProfilePhoto(source);
+      if (!dataUri) return; // el usuario canceló
+
+      setSavingPhoto(true);
+      await updateDoc(doc(db, 'usuarios', auth.currentUser.uid), { foto: dataUri });
+    } catch (error) {
+      Alert.alert('No se pudo cambiar la foto', error.message || 'Inténtelo nuevamente.');
+    } finally {
+      setSavingPhoto(false);
+    }
   };
 
-  const confirmLogOut = async () => {
-    setLogoutModalVisible(false);
+  const removePhoto = async () => {
     try {
-      await signOut(auth);  
+      setSavingPhoto(true);
+      // deleteField() borra el campo "foto" del documento
+      await updateDoc(doc(db, 'usuarios', auth.currentUser.uid), { foto: deleteField() });
     } catch (error) {
-      console.error("Error al cerrar sesión:", error);
+      Alert.alert('No se pudo quitar la foto', 'Inténtelo nuevamente.');
+    } finally {
+      setSavingPhoto(false);
     }
+  };
+
+  // Guarda un campo editado. Si falla, lanza el error para que el modal lo muestre.
+  const saveField = async (field, value) => {
+    await updateDoc(doc(db, 'usuarios', auth.currentUser.uid), { [field]: value });
+  };
+
+  // Menú de opciones al tocar el avatar
+  const openPhotoOptions = () => {
+    if (savingPhoto) return;
+    const options = [
+      { text: 'Elegir de la galería', onPress: () => changePhoto('library') },
+      { text: 'Tomar una foto', onPress: () => changePhoto('camera') },
+    ];
+    if (userData?.foto) {
+      options.push({ text: 'Quitar foto', style: 'destructive', onPress: removePhoto });
+    }
+    options.push({ text: 'Cancelar', style: 'cancel' });
+    Alert.alert('Foto de perfil', 'Elegí cómo querés cambiar tu foto', options);
   };
 
   return (
@@ -80,13 +113,8 @@ export default function Home({ navigation }) {
         style={styles.backgroundImage}
         resizeMode="cover"
       >
-        {/* Navbar con el botón de menú a la DERECHA */}
-        <View style={styles.navbar}>
-          <View style={{ flex: 1 }} />
-          <TouchableOpacity style={styles.menuButton} onPress={() => setMenuVisible(true)}>
-            <MaterialCommunityIcons name="menu-open" size={36} color="#6D512A" />
-          </TouchableOpacity>
-        </View>
+        {/* Espacio superior */}
+        <View style={styles.navbar} />
 
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
@@ -95,10 +123,31 @@ export default function Home({ navigation }) {
             <Text style={styles.tittle}>Mi Perfil</Text>
             <Text style={styles.subTittle}>Página principal de Temple Estetique</Text>
             
-            {/* Avatar con el icono person-circle de Ionicons */}
-            <View style={styles.fotoPerfilContainer}>
-              <Ionicons name="person-circle-outline" size={85} color="#B88A3B" />
-            </View>
+            {/* Avatar: foto guardada o ícono por defecto. Tocarlo abre las opciones. */}
+            <TouchableOpacity
+              style={styles.fotoPerfilContainer}
+              onPress={openPhotoOptions}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Cambiar foto de perfil"
+            >
+              {userData?.foto ? (
+                <Image source={{ uri: userData.foto }} style={styles.fotoPerfil} />
+              ) : (
+                <Ionicons name="person-circle-outline" size={85} color="#B88A3B" />
+              )}
+
+              {savingPhoto && (
+                <View style={styles.fotoLoading}>
+                  <ActivityIndicator color="#FFFFFF" />
+                </View>
+              )}
+
+              {/* Insignia de cámara para indicar que se puede editar */}
+              <View style={styles.fotoBadge}>
+                <Ionicons name="camera" size={14} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
 
             {/* Texto de bienvenida con la fuente Playfair Display */}
             <Text style={styles.nombrePerfil}>
@@ -106,57 +155,48 @@ export default function Home({ navigation }) {
             </Text>
           </View>
 
-          <PersonalInfoCard 
-            nombre={userData ? `${userData.nombre} ${userData.apellido}` : 'Cargando...'}
+          <PersonalInfoCard
+            nombre={userData ? userData.nombre : 'Cargando...'}
+            apellido={userData ? userData.apellido : 'Cargando...'}
             dni={userData ? userData.dni : 'Cargando...'}
             correo={userData ? userData.correo : 'Cargando...'}
-            telefono={userData ? userData.telefono : 'Cargando...'}
+            telefono={userData ? (userData.telefono || 'No cargado') : 'Cargando...'}
             fechaIngreso={
               userData && userData.fechaRegistro 
                 ? new Date(userData.fechaRegistro).toLocaleDateString('es-AR') 
                 : 'Cargando...'
-            } 
+            }
+            onEdit={userData ? setEditingField : undefined}
           />
+
+          {/* Cambio de contraseña */}
+          <TouchableOpacity
+            style={styles.passwordButton}
+            onPress={() => setPasswordModalVisible(true)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+          >
+            <Ionicons name="key-outline" size={18} color="#FBF1F0" />
+            <Text style={styles.passwordButtonText}>Editar contraseña</Text>
+          </TouchableOpacity>
 
         </ScrollView>
       </ImageBackground>
 
-      {/* Modal Institucional de Cierre de Sesión */}
-      <Modal
-          animationType="fade"
-          transparent={true}
-          visible={logoutModalVisible}
-          onRequestClose={() => setLogoutModalVisible(false)}
-      >
-          <View style={styles.customModalOverlay}>
-              <View style={styles.customModalBox}>
-                  <Text style={styles.customModalTitle}>¿Desea cerrar sesión?</Text>
-                  <Text style={styles.customModalSubtitle}>Deberá iniciar sesión nuevamente para ingresar al sistema.</Text>
 
-                  <View style={styles.customModalButtonRow}>
-                      <TouchableOpacity 
-                          style={styles.customCancelBtn} 
-                          onPress={() => setLogoutModalVisible(false)}
-                      >
-                          <Text style={styles.customCancelText}>Cancelar</Text>
-                      </TouchableOpacity>
+      {/* Modal para editar un campo del perfil */}
+      <EditFieldModal
+        visible={editingField !== null}
+        field={editingField}
+        currentValue={editingField && userData ? userData[editingField] : ''}
+        onClose={() => setEditingField(null)}
+        onConfirm={(value) => saveField(editingField, value)}
+      />
 
-                      <TouchableOpacity 
-                          style={styles.customContinueBtn} 
-                          onPress={confirmLogOut}
-                      >
-                          <Text style={styles.customContinueText}>Continuar</Text>
-                      </TouchableOpacity>
-                  </View>
-              </View>
-          </View>
-      </Modal>
-
-      <MenuModal
-        visible={menuVisible}
-        onClose={() => setMenuVisible(false)} 
-        onLogout={handleLogOut}
-        navigation={navigation}
+      {/* Modal para cambiar la contraseña */}
+      <ChangePasswordModal
+        visible={passwordModalVisible}
+        onClose={() => setPasswordModalVisible(false)}
       />
 
     </View>
@@ -187,9 +227,6 @@ const styles = StyleSheet.create({
     paddingBottom: 5,
     backgroundColor: 'transparent',
   },
-  menuButton: {
-    padding: 6,
-  },
   tittle:{
     fontSize: 30,
     fontFamily: 'PlayfairDisplay_700Bold',
@@ -211,7 +248,7 @@ const styles = StyleSheet.create({
   },
   scrollContent:{
     padding: 20,
-    paddingBottom: 50,
+    paddingBottom: 120,
     backgroundColor: 'transparent',
   },
   
@@ -235,78 +272,49 @@ const styles = StyleSheet.create({
     shadowColor: '#6d512a',
     elevation: 3,
   },
+  fotoPerfil:{
+    width: '100%',
+    height: '100%',
+    borderRadius: 45,
+  },
+  fotoLoading:{
+    ...StyleSheet.absoluteFill,
+    borderRadius: 45,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fotoBadge:{
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#B88A3B',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  passwordButton:{
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#B88A3B',
+    borderRadius: 14,
+    paddingVertical: 13,
+    marginTop: 18,
+  },
+  passwordButtonText:{
+    color: '#FBF1F0',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
   nombrePerfil:{
     fontSize: 21,
     fontFamily: 'PlayfairDisplay_700Bold',
     color:'#6D512A',
-  },
-
-  // Estilos del Modal Institucional
-  customModalOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(50, 35, 20, 0.75)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 20,
-  },
-  customModalBox: {
-      backgroundColor: '#F2E3C8',
-      borderRadius: 24,
-      padding: 24,
-      width: '90%',
-      maxWidth: 360,
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.3,
-      shadowRadius: 10,
-      elevation: 10,
-  },
-  customModalTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: '#4A3B32',
-      textAlign: 'center',
-      marginBottom: 12,
-      lineHeight: 26,
-  },
-  customModalSubtitle: {
-      fontSize: 14,
-      color: '#7C6860',
-      textAlign: 'center',
-      marginBottom: 24,
-      lineHeight: 20,
-  },
-  customModalButtonRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      width: '100%',
-      gap: 12,
-  },
-  customCancelBtn: {
-      flex: 1,
-      backgroundColor: '#7A6B62',
-      paddingVertical: 14,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-  },
-  customCancelText: {
-      color: '#FFFFFF',
-      fontSize: 15,
-      fontWeight: 'bold',
-  },
-  customContinueBtn: {
-      flex: 1,
-      backgroundColor: '#D49B37',
-      paddingVertical: 14,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-  },
-  customContinueText: {
-      color: '#FFFFFF',
-      fontSize: 15,
-      fontWeight: 'bold',
   },
 });

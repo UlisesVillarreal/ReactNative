@@ -24,6 +24,7 @@ if (isFirebaseConfigured) {
     if (error.code !== 'auth/already-initialized') throw error;
     auth = getAuth(app);
   }
+  auth.languageCode = 'es';
   db = getFirestore(app);
 }
 

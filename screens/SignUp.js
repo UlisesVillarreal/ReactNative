@@ -1,17 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ImageBackground, KeyboardAvoidingView, Platform} from 'react-native';
+import { ScrollView, View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { auth, db } from '../src/config/firebaseConfig';
 import { doc, setDoc } from 'firebase/firestore';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { sololetras, getPasswordRequirements, NAME_REGEX, EMAIL_REGEX, DNI_REGEX, TEL_REGEX } from '../src/utils/validators';
+import { createUserWithEmailAndPassword, updateProfile, sendEmailVerification, signOut } from 'firebase/auth';
 
 export default function SignUp({ navigation }) {
 
-  //teclado para solo texto
-  const sololetras = (texto) =>
-    texto
-      .replace(/[^a-zA-ZñÑ\s]/g, '')
-      .replace(/\b\w/g, (letra) => letra.toUpperCase()); 
   // info personal
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -29,58 +25,12 @@ export default function SignUp({ navigation }) {
   const [errors,setErrors] = useState({});
   const [isFormValid, setIsFormValid] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState('');
-  const [passwordStrengthColor, setPasswordStrengthColor] = useState('');
 
-  // funcion para medir la seguridad de la contraseña
-  const checkPasswordStrength = (password) => {
-    if (password.length === 0) {
-      setPasswordStrength('');
-      setPasswordStrengthColor('');
-      return;
-    }
-    const hasMinLength = password.length >= 8;
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasLowerCase = /[a-z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>\-_=+[\];/\\~]/.test(password);
+  const passwordRequirements = getPasswordRequirements(password);
 
-    const requirementsMet = [hasMinLength, hasUpperCase, hasLowerCase, hasNumber, hasSpecialChar].filter(Boolean).length;
-
-    if (requirementsMet <= 2) {
-      setPasswordStrength('Débil');
-      setPasswordStrengthColor('#EF4444');
-    } else if (requirementsMet <= 4) {
-      setPasswordStrength('Media');
-      setPasswordStrengthColor('#F59E0B');
-    } else {
-      setPasswordStrength('Fuerte');
-      setPasswordStrengthColor('#10B981');
-    }
-  };
-  const passwordRequirements = [
-    {
-      label: 'Al menos 8 caracteres',
-      met: password.length >= 8,
-    },
-    {
-      label: 'Una letra mayúscula',
-      met: /[A-Z]/.test(password),
-    },
-    {
-      label: 'Una letra minúscula',
-      met: /[a-z]/.test(password),
-    },
-    {
-      label: 'Un número',
-      met: /[0-9]/.test(password),
-    },
-    {
-      label: 'Un carácter especial (@, #, !)',
-      met: /[!@#$%^&*(),.?":{}|<>\-_=+[\];/\\~]/.test(password),
-    },
-  ];
-
+  // Fuerza derivada de los requisitos (sin estado extra, siempre actualizada)
+  const requirementsMet = passwordRequirements.filter((r) => r.met).length;
+  const isPasswordStrong = requirementsMet === passwordRequirements.length;
 
   // -- VALIDACIONES --
   useEffect(() => {
@@ -88,14 +38,10 @@ export default function SignUp({ navigation }) {
     let formIsValid = true;
 
     // Regex
-    const nameRegex = /^[a-zA-Z\sñÑ\u00C0-\u017F]+$/;
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    const dniRegex = /^\d{7,8}$/;
-    const telRegex = /^\d{10}$/;
 
     // Nombre
     if (firstName.trim().length > 0) {
-      if (!nameRegex.test(firstName.trim())) {
+      if (!NAME_REGEX.test(firstName.trim())) {
         newErrors.firstName = 'Solo se permiten letras.';
         formIsValid = false;
       }
@@ -105,7 +51,7 @@ export default function SignUp({ navigation }) {
 
     // Apellido
     if (lastName.trim().length > 0) {
-      if (!nameRegex.test(lastName.trim())) {
+      if (!NAME_REGEX.test(lastName.trim())) {
         newErrors.lastName = 'Solo se permiten letras.';
         formIsValid = false;
       }
@@ -115,7 +61,7 @@ export default function SignUp({ navigation }) {
 
     // DNI
     if (dni.trim().length > 0) {
-      if (!dniRegex.test(dni.trim())) {
+      if (!DNI_REGEX.test(dni.trim())) {
         newErrors.dni = 'Debe tener entre 7 y 8 dígitos, solo números.';
         formIsValid = false;
       }
@@ -125,7 +71,7 @@ export default function SignUp({ navigation }) {
 
     // Correo
     if (email.trim().length > 0) {
-      if (!emailRegex.test(email.trim())) {
+      if (!EMAIL_REGEX.test(email.trim())) {
         newErrors.email = 'Formato inválido. Ej: usuario@gmail.com';
         formIsValid = false;
       }
@@ -134,13 +80,12 @@ export default function SignUp({ navigation }) {
     }
 
     // Teléfono (No es obligatorio pero si debe tener el formato correcto)
-    if (tel.trim().length > 0 && !telRegex.test(tel.trim())) {
+    if (tel.trim().length > 0 && !TEL_REGEX.test(tel.trim())) {
       newErrors.tel = 'El teléfono solo debe tener 10 números, sin otros caracteres.';
       formIsValid = false;
     }
 
     // Contraseñas
-    checkPasswordStrength(password);
     if (/\s/.test(password)) {
       newErrors.password = 'La contraseña no puede contener espacios en blanco.';
       formIsValid = false;
@@ -155,8 +100,8 @@ export default function SignUp({ navigation }) {
       formIsValid = false;
     }
 
-    // Si el medidor de fuerza es Débil o Medio, bloqueamos el botón
-    if (passwordStrength === 'Débil' || passwordStrength === 'Media' || passwordStrength === '') {
+    // Se exige que la contraseña cumpla todos los requisitos
+    if (!isPasswordStrong) {
       formIsValid = false;
     }
 
@@ -166,16 +111,17 @@ export default function SignUp({ navigation }) {
 
   }, [firstName, lastName, dni, tel, email, password, confirmPassword]);
 
-const handleSignUp = async () => {
-    // Si el botón se habilitó por error, cortamos aquí.
-    if (!isFormValid) return; 
+  const handleSignUp = async () => {
+    // Evita envíos vacíos o duplicados (doble toque)
+    if (!isFormValid || loading) return;
 
-    setLoading(true); // "cargando..." del botón
-    
+    setLoading(true);
+    let user = null;
+
     try {
       // Creamos la cuenta en Firebase Auth
       const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-      const user = credential.user;
+      user = credential.user;
 
       // Guardamos el perfil completo en Firestore vinculando el UID del usuario
       await setDoc(doc(db, 'usuarios', user.uid), {
@@ -188,20 +134,46 @@ const handleSignUp = async () => {
         fechaRegistro: new Date().toISOString()
       });
 
-      // Actualizamos el nombre básico en Auth por si acaso
-      await updateProfile(user, { displayName: `${firstName.trim()} ${lastName.trim()}` });
-      
-      Alert.alert("Registro exitoso", "Tu cuenta fue creada correctamente.");
-    
+      // Nombre visible en Auth (no es crítico si falla)
+      await updateProfile(user, { displayName: `${firstName.trim()} ${lastName.trim()}` }).catch(() => {});
+
+      // Enviamos el correo de confirmación y cerramos la sesión:
+      // hasta confirmar el correo no se puede ingresar al sistema.
+      let correoEnviado = true;
+      try {
+        await sendEmailVerification(user);
+      } catch (e) {
+        correoEnviado = false;
+      }
+      await signOut(auth);
+
+      Alert.alert(
+        "Registro exitoso",
+        correoEnviado
+          ? `Te enviamos un correo de confirmación a ${email.trim()}. Confirmalo para poder iniciar sesión.`
+          : "Tu cuenta fue creada, pero no pudimos enviar el correo de confirmación. Intentá iniciar sesión para reenviarlo.",
+        [{ text: "Aceptar", onPress: () => navigation.navigate('Login') }],
+        { onDismiss: () => navigation.navigate('Login') }
+      );
+
     } catch (error) {
-      // Manejo de errores de Firebase
-      let errorMessage = "Hubo un problema al registrar el usuario.";
-      if (error.code === 'auth/email-already-in-use') errorMessage = "El correo ya está registrado en otra cuenta.";
-      if (error.code === 'auth/network-request-failed') errorMessage = "Error de conexión, revisá tu internet.";
-      
-      Alert.alert("Error de registro", errorMessage);
+      // Si la cuenta se creó pero el perfil no se pudo guardar, la revertimos
+      // para no dejar una cuenta sin perfil y permitir reintentar.
+      if (user) {
+        await user.delete().catch(() => {});
+      }
+
+      const mensajes = {
+        'auth/email-already-in-use': 'El correo ya está registrado en otra cuenta.',
+        'auth/invalid-email': 'El formato del correo no es válido.',
+        'auth/weak-password': 'La contraseña es demasiado débil.',
+        'auth/network-request-failed': 'Error de conexión, revisá tu internet.',
+        'auth/too-many-requests': 'Demasiados intentos. Esperá unos minutos e intentá de nuevo.',
+        'permission-denied': 'No tenés permisos para completar el registro.',
+      };
+      Alert.alert("Error de registro", mensajes[error.code] || "Hubo un problema al registrar el usuario.");
     } finally {
-      setLoading(false); // Apagamos el "cargando..."
+      setLoading(false);
     }
   };
 
@@ -221,11 +193,7 @@ const handleSignUp = async () => {
         <Image source={require('../assets/logotemple2.png')} style={styles.logo} />
         <Text style={styles.title}>Crear Cuenta</Text>
 
-          <ScrollView 
-          style={{ width: '100%' }}
-          contentContainerStyle={styles.subContainer}
-          showsVerticalScrollIndicator={false}
-          >
+          <View style={[styles.subContainer, { width: '100%' }]}>
 
             {/* nombre */}
             <Text style={styles.label}>Nombre *</Text>
@@ -264,7 +232,7 @@ const handleSignUp = async () => {
                 {errors.lastName}
             </Text>
             )}
-            //DNI
+            {/* DNI */}
             <Text style={styles.label}>DNI *</Text>
             <View style={styles.inputContainer}>
               <FontAwesome name="id-card" size={20} style={styles.icon} />
@@ -285,7 +253,7 @@ const handleSignUp = async () => {
             {/* telefono */}
             <Text style={styles.label}>Teléfono</Text>
             <View style={styles.inputContainer}>
-              <Text style={styles.Flag}>🇦🇷</Text>
+              <Text style={styles.countryFlag}>🇦🇷</Text>
               <Text style={styles.countryCode}>+54</Text>
               <View style={styles.phoneSeparator} />
               <TextInput
@@ -310,6 +278,8 @@ const handleSignUp = async () => {
                 onChangeText={(texto) => setEmail(texto.replace(/[^a-zA-Z0-9.@_%+-]/g, ''))}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
               />
             </View>
             {errors.email && <Text style={styles.errortext}>{errors.email}</Text>}
@@ -324,8 +294,10 @@ const handleSignUp = async () => {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} accessibilityLabel={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
                 <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} style={styles.icon}/>
               </TouchableOpacity>
             </View>
@@ -372,8 +344,10 @@ const handleSignUp = async () => {
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirmPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
               />
-              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} accessibilityLabel={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
                 <FontAwesome name={showConfirmPassword ? "eye-slash" : "eye"} size={20}  style={styles.icon}/>
               </TouchableOpacity>
             </View>
@@ -384,17 +358,19 @@ const handleSignUp = async () => {
             )}
 
             <TouchableOpacity 
-              style={[styles.button, !isFormValid && { backgroundColor: '#D8B77A80' }]} 
+              style={[styles.button, (!isFormValid || loading) && { backgroundColor: '#D8B77A80' }]} 
               onPress={handleSignUp}
-              disabled={!isFormValid} 
+              disabled={!isFormValid || loading} 
             >  
-              <Text style={styles.buttonText}>Registrarse</Text>
+              {loading
+                ? <ActivityIndicator color="#FBF1F0" />
+                : <Text style={styles.buttonText}>Registrarse</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity onPress={() => navigation.navigate('Login')}>
               <Text style={styles.signUpText}>¿Ya tienes cuenta? Inicia sesión</Text>
             </TouchableOpacity>
-          </ScrollView>
+          </View>
       </ScrollView>
 
     </KeyboardAvoidingView>
@@ -506,22 +482,6 @@ const styles = StyleSheet.create({
   signUpText: {
     marginTop: 20,
     color: '#B88A3B',
-  },
-  strengthContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    alignSelf: 'stretch',
-    marginBottom: 10,
-  },
-  strengthLabel: {
-    fontSize: 11,
-    color: '#666666',
-  },
-  strengthText: {
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   errortext: {
     color: '#D94A3D',
