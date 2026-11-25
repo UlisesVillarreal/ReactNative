@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ActivityIndicator, ScrollView, View, Text, TouchableOpacity, StyleSheet, Modal, ImageBackground, Dimensions} from 'react-native';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../src/config/firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, PlayfairDisplay_400Regular, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
@@ -20,27 +20,24 @@ export default function Home({ navigation }) {
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const currentUser = auth.currentUser;
-        if (currentUser) {
-          const userDocRef = doc(db, 'usuarios', currentUser.uid);
-          const userDocSnap = await getDoc(userDocRef);
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
 
-          if (userDocSnap.exists()) {
-            setUserData(userDocSnap.data());
-          } else {
-            console.log("No se encontró el perfil en la base de datos.");
-          }
-        }
-      } catch (error) {
-        console.error("Error al obtener los datos del usuario:", error);
-      } finally {
+    // Escucha en tiempo real: si el perfil se crea unos instantes después
+    // del registro, la pantalla se actualiza sola.
+    const unsubscribe = onSnapshot(
+      doc(db, 'usuarios', currentUser.uid),
+      (snap) => {
+        setUserData(snap.exists() ? snap.data() : null);
         setLoading(false);
-      }
-    };
+      },
+      () => setLoading(false)
+    );
 
-    fetchUserData();
+    return () => unsubscribe();
   }, []);
 
   let [fontsLoaded] = useFonts({

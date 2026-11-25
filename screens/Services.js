@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Modal, ImageBackground, Dimensions } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Modal, ImageBackground, Dimensions, Alert } from 'react-native';
 import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 // Firebase Firestore
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '../src/config/firebaseConfig';
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
+import { db, auth } from '../src/config/firebaseConfig';
 // Componentes
 import MenuModal from '../components/MenuModal';
 import ServiceFormModal from '../components/ServiceFormModal';
@@ -51,15 +52,16 @@ export default function Services({ navigation }) {
 
     // Lectura en tiempo real con Firebase
     useEffect(() => {
-        const q = query(collection(db, 'servicios'), orderBy('empleado', 'asc'));
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+        const unsubscribe = onSnapshot(collection(db, 'servicios'), (querySnapshot) => {
             const lista = [];
             querySnapshot.forEach((documento) => {
                 lista.push({ id: documento.id, ...documento.data() });
             });
+            // Más recientes primero (los registros viejos sin marca de tiempo van al final)
+            lista.sort((a, b) => (b.creadoEn?.toMillis?.() ?? 0) - (a.creadoEn?.toMillis?.() ?? 0));
             setServices(lista);
-        }, (error) => {
-            console.error("Error al obtener servicios: ", error);
+        }, () => {
+            Alert.alert('Error', 'No se pudieron cargar los servicios. Verifique su conexión o sus permisos.');
         });
 
         return () => unsubscribe();
@@ -80,33 +82,36 @@ export default function Services({ navigation }) {
         }
 
         setErrorMsg('');
-        const formattedAmount = `$${Number(formMonto).toLocaleString('es-AR')}`;
+        const montoNumero = Number(formMonto);
+        const formattedAmount = `$${montoNumero.toLocaleString('es-AR')}`;
         const { fecha, hora } = getCurrentDateTime();
 
         setLoading(true);
         try {
             if (isEditing && selectedService) {
+                // Al editar se conservan la fecha y hora originales del registro
                 const docRef = doc(db, 'servicios', selectedService.id);
                 await updateDoc(docRef, {
                     empleado: formEmpleado,
                     servicio: formServicio,
                     monto: formattedAmount,
-                    fecha: fecha,
-                    hora: hora
+                    montoNumero: montoNumero,
                 });
             } else {
                 await addDoc(collection(db, 'servicios'), {
                     empleado: formEmpleado,
                     servicio: formServicio,
                     monto: formattedAmount,
+                    montoNumero: montoNumero,
                     fecha: fecha,
-                    hora: hora
+                    hora: hora,
+                    creadoEn: serverTimestamp(),
+                    creadoPor: auth.currentUser?.uid ?? null,
                 });
             }
             setRegisterModalVisible(false);
         } catch (error) {
-            console.error("Error al guardar en Firebase:", error);
-            setErrorMsg("No se pudo conectar con la base de datos.");
+            setErrorMsg("No se pudo guardar el registro. Verifique su conexión o sus permisos.");
         } finally {
             setLoading(false); 
         }
@@ -161,7 +166,7 @@ export default function Services({ navigation }) {
             try {
                 await deleteDoc(doc(db, 'servicios', id));
             } catch (error) {
-                console.error("Error al eliminar:", error);
+                Alert.alert('Error', 'No se pudo eliminar el registro. Es posible que no tenga permisos para hacerlo.');
             }
         });
         setConfirmModalVisible(true);
@@ -304,7 +309,7 @@ export default function Services({ navigation }) {
             <MenuModal
                 visible={menuVisible}
                 onClose={() => setMenuVisible(false)}
-                onLogout={() => navigation.replace('Login')}
+                onLogout={() => signOut(auth).catch(() => Alert.alert('Error', 'No se pudo cerrar la sesión.'))}
                 navigation={navigation} 
             />
         </View>

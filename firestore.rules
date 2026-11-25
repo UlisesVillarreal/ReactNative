@@ -1,0 +1,69 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Tiene perfil de usuario creado (cuenta registrada en el sistema)
+    function hasProfile() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid));
+    }
+
+    // Perfil de usuario: solo su dueño puede leerlo y crearlo.
+    // El rol solo puede ser 'empleado' al crearse y no se puede modificar después.
+    match /usuarios/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+
+      allow create: if signedIn()
+                    && request.auth.uid == uid
+                    && request.resource.data.keys().hasOnly(
+                         ['nombre', 'apellido', 'dni', 'telefono', 'correo', 'rol', 'fechaRegistro'])
+                    && request.resource.data.rol == 'empleado'
+                    && request.resource.data.nombre is string
+                    && request.resource.data.apellido is string
+                    && request.resource.data.dni is string
+                    && request.resource.data.correo == request.auth.token.email.lower();
+
+      // Solo se pueden cambiar nombre, apellido y teléfono. Nunca rol, dni ni correo.
+      allow update: if signedIn()
+                    && request.auth.uid == uid
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['nombre', 'apellido', 'telefono']);
+
+      allow delete: if false;
+    }
+
+    // Servicios realizados.
+    // Leer, crear y editar: cualquier usuario con perfil, con datos válidos.
+    // Eliminar: cualquier usuario con perfil (sistema de prueba).
+    match /servicios/{id} {
+      allow read: if hasProfile();
+
+      allow create: if hasProfile()
+                    && request.resource.data.empleado is string
+                    && request.resource.data.servicio is string
+                    && request.resource.data.montoNumero is number
+                    && request.resource.data.montoNumero > 0
+                    && request.resource.data.montoNumero < 100000000
+                    && request.resource.data.creadoPor == request.auth.uid;
+
+      allow update: if hasProfile()
+                    && request.resource.data.empleado is string
+                    && request.resource.data.servicio is string
+                    && request.resource.data.montoNumero is number
+                    && request.resource.data.montoNumero > 0
+                    && request.resource.data.montoNumero < 100000000;
+
+      allow delete: if hasProfile();
+    }
+
+    // Todo lo demás, denegado.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
