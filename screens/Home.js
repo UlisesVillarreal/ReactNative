@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { ActivityIndicator, ScrollView, View, Text, StyleSheet, ImageBackground, Dimensions} from 'react-native';
+import { ActivityIndicator, ScrollView, View, Text, StyleSheet, ImageBackground, Dimensions, TouchableOpacity, Image, Alert } from 'react-native';
 import { auth, db } from '../src/config/firebaseConfig';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, deleteField } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 import { useFonts, PlayfairDisplay_400Regular, PlayfairDisplay_700Bold } from '@expo-google-fonts/playfair-display';
 import PersonalInfoCard from '../components/PersonalInfoCard';
+import { pickProfilePhoto } from '../src/utils/profilePhoto';
 
 const { height, width } = Dimensions.get('window');
 
 export default function Home({ navigation }) {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [savingPhoto, setSavingPhoto] = useState(false);
 
   useEffect(() => {
     const currentUser = auth.currentUser;
@@ -49,6 +51,50 @@ export default function Home({ navigation }) {
     );
   }
   
+  // --- Foto de perfil ---
+  // Flujo: elegir foto -> reducirla (utils/profilePhoto) -> guardarla en el
+  // documento del usuario en Firestore. El onSnapshot de arriba actualiza la
+  // pantalla solo cuando el guardado termina.
+  const changePhoto = async (source) => {
+    try {
+      const dataUri = await pickProfilePhoto(source);
+      if (!dataUri) return; // el usuario canceló
+
+      setSavingPhoto(true);
+      await updateDoc(doc(db, 'usuarios', auth.currentUser.uid), { foto: dataUri });
+    } catch (error) {
+      Alert.alert('No se pudo cambiar la foto', error.message || 'Inténtelo nuevamente.');
+    } finally {
+      setSavingPhoto(false);
+    }
+  };
+
+  const removePhoto = async () => {
+    try {
+      setSavingPhoto(true);
+      // deleteField() borra el campo "foto" del documento
+      await updateDoc(doc(db, 'usuarios', auth.currentUser.uid), { foto: deleteField() });
+    } catch (error) {
+      Alert.alert('No se pudo quitar la foto', 'Inténtelo nuevamente.');
+    } finally {
+      setSavingPhoto(false);
+    }
+  };
+
+  // Menú de opciones al tocar el avatar
+  const openPhotoOptions = () => {
+    if (savingPhoto) return;
+    const options = [
+      { text: 'Elegir de la galería', onPress: () => changePhoto('library') },
+      { text: 'Tomar una foto', onPress: () => changePhoto('camera') },
+    ];
+    if (userData?.foto) {
+      options.push({ text: 'Quitar foto', style: 'destructive', onPress: removePhoto });
+    }
+    options.push({ text: 'Cancelar', style: 'cancel' });
+    Alert.alert('Foto de perfil', 'Elegí cómo querés cambiar tu foto', options);
+  };
+
   return (
     <View style={styles.container}>
       {/* Imagen de fondo abarcando toda la pantalla */}
@@ -67,10 +113,31 @@ export default function Home({ navigation }) {
             <Text style={styles.tittle}>Mi Perfil</Text>
             <Text style={styles.subTittle}>Página principal de Temple Estetique</Text>
             
-            {/* Avatar con el icono person-circle de Ionicons */}
-            <View style={styles.fotoPerfilContainer}>
-              <Ionicons name="person-circle-outline" size={85} color="#B88A3B" />
-            </View>
+            {/* Avatar: foto guardada o ícono por defecto. Tocarlo abre las opciones. */}
+            <TouchableOpacity
+              style={styles.fotoPerfilContainer}
+              onPress={openPhotoOptions}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Cambiar foto de perfil"
+            >
+              {userData?.foto ? (
+                <Image source={{ uri: userData.foto }} style={styles.fotoPerfil} />
+              ) : (
+                <Ionicons name="person-circle-outline" size={85} color="#B88A3B" />
+              )}
+
+              {savingPhoto && (
+                <View style={styles.fotoLoading}>
+                  <ActivityIndicator color="#FFFFFF" />
+                </View>
+              )}
+
+              {/* Insignia de cámara para indicar que se puede editar */}
+              <View style={styles.fotoBadge}>
+                <Ionicons name="camera" size={14} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
 
             {/* Texto de bienvenida con la fuente Playfair Display */}
             <Text style={styles.nombrePerfil}>
@@ -165,6 +232,31 @@ const styles = StyleSheet.create({
     borderColor: '#D4B279',
     shadowColor: '#6d512a',
     elevation: 3,
+  },
+  fotoPerfil:{
+    width: '100%',
+    height: '100%',
+    borderRadius: 45,
+  },
+  fotoLoading:{
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 45,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fotoBadge:{
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#B88A3B',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   nombrePerfil:{
     fontSize: 21,

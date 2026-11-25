@@ -29,11 +29,15 @@ service cloud.firestore {
                     && request.resource.data.dni is string
                     && request.resource.data.correo == request.auth.token.email.lower();
 
-      // Solo se pueden cambiar nombre, apellido y teléfono. Nunca rol, dni ni correo.
+      // Solo se pueden cambiar nombre, apellido, teléfono y foto. Nunca rol, dni ni correo.
+      // La foto es un texto (imagen reducida en base64) de hasta ~150 KB.
       allow update: if signedIn()
                     && request.auth.uid == uid
                     && request.resource.data.diff(resource.data).affectedKeys()
-                         .hasOnly(['nombre', 'apellido', 'telefono']);
+                         .hasOnly(['nombre', 'apellido', 'telefono', 'foto'])
+                    && (!('foto' in request.resource.data)
+                        || (request.resource.data.foto is string
+                            && request.resource.data.foto.size() < 150000));
 
       allow delete: if false;
     }
